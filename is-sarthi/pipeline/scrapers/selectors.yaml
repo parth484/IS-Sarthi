@@ -1,0 +1,79 @@
+# DOM selectors for every scraped source, isolated from code.
+#
+# BIS publishes no API and makes no stability guarantee about its markup. These
+# selectors WILL drift. Keeping them here means a site change is a config edit
+# plus `python scripts/validate_selectors.py`, not a code change and not a
+# silent data outage.
+#
+# Each source lists `candidates` -- several selectors tried in order. Public
+# sector sites are frequently rebuilt section by section, so tolerating more
+# than one layout at a time materially reduces breakage.
+
+bis_portal:
+  base_url: "https://www.bis.gov.in"
+  search_path: "/standards/"
+  recently_published_path: "/recently-published-standards/"
+  results_row:
+    candidates:
+      - "table.standards-table tbody tr"
+      - "table.views-table tbody tr"
+      - "div.standard-listing div.standard-item"
+      - "table tbody tr"
+  columns:
+    is_number: 0
+    title: 1
+    year: 2
+    status: 3
+  detail:
+    title:
+      candidates: ["h1.standard-title", "h1.page-title", "h1"]
+    metadata_table:
+      candidates: ["table.standard-meta", "div.field-group table", "table"]
+    normative_references:
+      candidates:
+        - "div#normative-references"
+        - "div.normative-refs"
+        - "section[data-section='references']"
+    amendments:
+      candidates: ["div#amendments", "div.amendment-list", "ul.amendments"]
+
+manak_online:
+  base_url: "https://standardsbis.bsbedge.com"
+  search_path: "/BIS_SearchStandards.aspx"
+  # ASP.NET WebForms: requires __VIEWSTATE and __EVENTVALIDATION round-trip.
+  viewstate_field: "__VIEWSTATE"
+  eventvalidation_field: "__EVENTVALIDATION"
+  viewstategenerator_field: "__VIEWSTATEGENERATOR"
+  search_input: "ctl00$ContentPlaceHolder1$txtSearch"
+  search_button: "ctl00$ContentPlaceHolder1$btnSearch"
+  results_grid:
+    candidates:
+      - "table#ctl00_ContentPlaceHolder1_GridView1"
+      - "table.gridview"
+      - "table[id*='GridView']"
+
+crs:
+  base_url: "https://www.bis.gov.in"
+  landing_path: "/product-certification/products-under-compulsory-certification/"
+  # The CRS product list is published as a downloadable spreadsheet whose URL
+  # changes on each revision, so it is discovered from the landing page rather
+  # than hardcoded.
+  file_link_pattern: "\\.(xlsx|xls|pdf)$"
+  link_text_hints: ["CRS", "compulsory registration", "product list", "scheme-ii"]
+
+gazette:
+  base_url: "https://egazette.gov.in"
+  search_path: "/(S(2))/SearchGazette.aspx"
+  ministry_filter: "Consumer Affairs, Food and Public Distribution"
+  keyword_hints:
+    ["Bureau of Indian Standards", "Quality Control Order", "compulsory", "BIS"]
+  notification_row:
+    candidates: ["table.gazette-list tbody tr", "div.notification-item", "table tbody tr"]
+
+gem:
+  base_url: "https://mkp.gem.gov.in"
+  categories_path: "/api/v2/categories"
+  # GeM's public surface is inconsistent about JSON availability. The scraper
+  # treats this source as best-effort: it enriches the evaluation set with real
+  # procurement phrasing but nothing downstream depends on it.
+  optional: true

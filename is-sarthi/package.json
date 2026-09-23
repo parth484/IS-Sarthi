@@ -1,0 +1,11 @@
+{
+  "name": "is-sarthi-root",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "install:frontend": "npm --prefix frontend install"
+  }
+}

@@ -1,0 +1,145 @@
+[
+  {
+    "query": "3 core armoured copper cable for underground LV power distribution up to 1100V",
+    "expected": ["IS 1554-1", "IS 7098-1"],
+    "expected_allied": ["IS 8130", "IS 10810-1", "IS 3975"],
+    "category": "electrical",
+    "note": "Classic procurement phrasing; both PVC and XLPE are defensible answers"
+  },
+  {
+    "query": "XLPE insulated cable for industrial power circuit higher temperature rating",
+    "expected": ["IS 7098-1"],
+    "expected_allied": ["IS 8130", "IS 5831"],
+    "category": "electrical"
+  },
+  {
+    "query": "internal building wiring PVC insulated copper wire for house electrification",
+    "expected": ["IS 694"],
+    "expected_allied": ["IS 8130"],
+    "category": "electrical"
+  },
+  {
+    "query": "earthing system design for substation with earth electrodes",
+    "expected": ["IS 3043"],
+    "category": "electrical"
+  },
+  {
+    "query": "electrical wiring installation code of practice for a government office building",
+    "expected": ["IS 732"],
+    "expected_allied": ["IS 3043"],
+    "category": "electrical"
+  },
+  {
+    "query": "ordinary portland cement 43 grade for RCC foundation",
+    "expected": ["IS 269", "IS 8112"],
+    "expected_allied": ["IS 4031-1", "IS 3535"],
+    "category": "civil",
+    "note": "IS 8112 is superseded; system must flag it rather than silently rank it"
+  },
+  {
+    "query": "structural concrete design code for reinforced cement concrete work",
+    "expected": ["IS 456"],
+    "expected_allied": ["IS 383", "IS 1786"],
+    "category": "civil"
+  },
+  {
+    "query": "coarse and fine aggregate for concrete mix",
+    "expected": ["IS 383"],
+    "category": "civil"
+  },
+  {
+    "query": "TMT deformed steel reinforcement bars Fe 500 grade",
+    "expected": ["IS 1786"],
+    "expected_allied": ["IS 1608", "IS 1599"],
+    "category": "metallurgy"
+  },
+  {
+    "query": "hot rolled structural steel plates and sections for fabrication",
+    "expected": ["IS 2062"],
+    "expected_allied": ["IS 1608"],
+    "category": "metallurgy"
+  },
+  {
+    "query": "LED bulbs for general lighting in government offices",
+    "expected": ["IS 16102-1", "IS 16102-2"],
+    "category": "electrical",
+    "note": "CRS certification must be flagged"
+  },
+  {
+    "query": "solar photovoltaic modules for rooftop installation",
+    "expected": ["IS 14286"],
+    "category": "electrical"
+  },
+  {
+    "query": "solar street lighting system standalone with battery",
+    "expected": ["IS 15111-1"],
+    "expected_allied": ["IS 14286"],
+    "category": "electrical"
+  },
+  {
+    "query": "lithium ion battery safety for portable devices",
+    "expected": ["IS 16046-1"],
+    "category": "electrical",
+    "note": "CRS mandatory"
+  },
+  {
+    "query": "gold jewellery hallmarking purity requirements",
+    "expected": ["IS 1417", "IS 2112"],
+    "expected_allied": ["IS 1418"],
+    "category": "metallurgy"
+  },
+  {
+    "query": "UPVC pipes for drinking water supply scheme",
+    "expected": ["IS 4985"],
+    "expected_allied": ["IS 12235-1", "IS 10151"],
+    "category": "civil"
+  },
+  {
+    "query": "steel pipes for water and sewage conveyance large diameter",
+    "expected": ["IS 3589"],
+    "category": "metallurgy"
+  },
+  {
+    "query": "low voltage circuit breakers for distribution panel",
+    "expected": ["IS 13947-2", "IS 13947-1"],
+    "category": "electrical"
+  },
+  {
+    "query": "electrical distribution board panel assembly with IP protection",
+    "expected": ["IS 8623-1"],
+    "expected_allied": ["IS 12063", "IS 13947-1"],
+    "category": "electrical"
+  },
+  {
+    "query": "safety requirements for household electrical appliances",
+    "expected": ["IS 302-1"],
+    "category": "electrical"
+  },
+  {
+    "query": "children toys safety mechanical properties and small parts",
+    "expected": ["IS 9873-1"],
+    "expected_allied": ["IS 9873-3"],
+    "category": "chemical"
+  },
+  {
+    "query": "degrees of protection IP rating for electrical enclosures",
+    "expected": ["IS 12063"],
+    "category": "electrical"
+  },
+  {
+    "query": "high tensile bolts and screws mechanical property class",
+    "expected": ["IS 1367-3"],
+    "category": "general"
+  },
+  {
+    "query": "concrete mix proportioning guidelines target strength",
+    "expected": ["IS 10262"],
+    "expected_allied": ["IS 456"],
+    "category": "civil"
+  },
+  {
+    "query": "compressive strength testing of concrete cubes",
+    "expected": ["IS 516"],
+    "category": "civil"
+  }
+]

@@ -1,0 +1,47 @@
+# Full local stack. Everything runs on a laptop; no managed-cloud dependency,
+# which is a hard requirement for a system intended to be deployable inside
+# government infrastructure.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: is_sarthi
+      POSTGRES_PASSWORD: is_sarthi
+      POSTGRES_DB: is_standards
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U is_sarthi"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: redis-server --appendonly yes
+    volumes: [redisdata:/data]
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/password123
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_server_memory_heap_max__size: 1G
+    ports: ["7474:7474", "7687:7687"]
+    volumes: [neo4jdata:/data]
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports: ["8000:8000"]
+    volumes: [chromadata:/chroma/chroma]
+    environment:
+      IS_PERSISTENT: "TRUE"
+
+volumes:
+  pgdata:
+  redisdata:
+  neo4jdata:
+  chromadata:
