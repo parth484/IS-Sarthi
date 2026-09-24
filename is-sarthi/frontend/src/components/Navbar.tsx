@@ -50,7 +50,7 @@ export default function Navbar() {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                AI-Powered Bureau of Indian Standards (BIS) Recommendation & Compliance Engine • SIH 2026
+                AI-Powered Bureau of Indian Standards (BIS) Recommendation & Compliance Engine
               </p>
             </div>
           </div>

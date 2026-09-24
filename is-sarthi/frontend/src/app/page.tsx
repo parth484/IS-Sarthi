@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Search, Sparkles, FileUp, Download, Loader2, RefreshCw } from 'lucide-react';
-import { recommendStandards } from '@/lib/api';
+import { recommendStandards, extractPdfText } from '@/lib/api';
 import { Recommendation } from '@/lib/types';
 import RecommendationCard from '@/components/RecommendationCard';
 import VoiceRecorder from '@/components/VoiceRecorder';
@@ -40,6 +40,8 @@ export default function SearchPage() {
   const [stageMessage, setStageMessage] = useState('');
   const [results, setResults] = useState<Recommendation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [extractingPdf, setExtractingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = async (overrideQuery?: string) => {
     const q = (overrideQuery ?? query).trim();
@@ -78,18 +80,34 @@ export default function SearchPage() {
     handleSearch(presetText);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        setQuery(text.slice(0, 2000));
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Please upload a valid .pdf file.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setExtractingPdf(true);
+    setError(null);
+
+    try {
+      const data = await extractPdfText(file);
+      if (data.text) {
+        setQuery(data.text);
+      } else {
+        setError('No readable text found in this PDF. It may be scanned or empty.');
       }
-    };
-    reader.readAsText(file);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to extract text from PDF document.');
+    } finally {
+      setExtractingPdf(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const downloadJson = () => {
@@ -171,10 +189,25 @@ export default function SearchPage() {
             <label className="text-xs sm:text-sm font-semibold text-slate-800">
               Product Description or Technical Specification
             </label>
-            <label className="flex items-center gap-1 text-xs text-blue-700 hover:text-blue-800 cursor-pointer font-medium">
-              <FileUp className="w-3.5 h-3.5" />
-              <span>Upload .txt File</span>
-              <input type="file" accept=".txt" onChange={handleFileUpload} className="hidden" />
+            <label
+              className={`flex items-center gap-1 text-xs font-medium transition-colors ${
+                extractingPdf ? 'text-slate-400 cursor-not-allowed' : 'text-blue-700 hover:text-blue-800 cursor-pointer'
+              }`}
+            >
+              {extractingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+              ) : (
+                <FileUp className="w-3.5 h-3.5" />
+              )}
+              <span>{extractingPdf ? 'Extracting PDF...' : 'Upload PDF File'}</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={handleFileUpload}
+                disabled={extractingPdf}
+                className="hidden"
+              />
             </label>
           </div>
           <textarea

@@ -105,3 +105,9 @@ export interface SynthesizeResponse {
   language_code: string;
   audio_base64: string;
 }
+
+export interface ExtractPdfResponse {
+  text: string;
+  filename: string;
+  character_count: number;
+}

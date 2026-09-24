@@ -74,17 +74,22 @@ class ISPDFExtractor:
     DIVISION = re.compile(r"\b([A-Z]{2,4})\s*\d{1,2}\b")
 
     def extract(self, pdf_path: str | Path) -> ExtractedStandard:
-        import pdfplumber
-
         path = Path(pdf_path)
         result = ExtractedStandard(file=str(path))
 
         try:
-            with pdfplumber.open(path) as pdf:
-                # The header block and the references section are what matter;
-                # reading every page of a 200-page standard wastes time for no
-                # gain, so cap it.
-                pages = pdf.pages[:25]
+            try:
+                import pdfplumber
+                with pdfplumber.open(path) as pdf:
+                    # The header block and the references section are what matter;
+                    # reading every page of a 200-page standard wastes time for no
+                    # gain, so cap it.
+                    pages = pdf.pages[:25]
+                    text = "\n".join((page.extract_text() or "") for page in pages)
+            except ImportError:
+                import pypdf
+                reader = pypdf.PdfReader(str(path))
+                pages = reader.pages[:25]
                 text = "\n".join((page.extract_text() or "") for page in pages)
         except Exception as exc:
             logger.error("Failed to open %s: %s", path, exc)
@@ -199,3 +204,76 @@ def batch_extract(directory: str | Path) -> list[dict]:
             len(extracted.normative_references),
         )
     return results
+
+
+def extract_text_from_pdf(pdf_source: str | Path | bytes) -> str:
+    """
+    Extract readable plain text from a PDF document (file path or binary bytes).
+    Handles empty, corrupted, password-protected, or unreadable PDFs gracefully.
+    Reuses ISPDFExtractor._clean for text normalization.
+    """
+    import io
+
+    if isinstance(pdf_source, (bytes, bytearray)):
+        if len(pdf_source) == 0:
+            raise ValueError("The uploaded PDF file is empty (0 bytes).")
+        stream = io.BytesIO(pdf_source)
+    else:
+        path = Path(pdf_source)
+        if not path.exists():
+            raise FileNotFoundError(f"PDF file not found: {path}")
+        if path.stat().st_size == 0:
+            raise ValueError("The uploaded PDF file is empty (0 bytes).")
+        with open(path, "rb") as f:
+            stream = io.BytesIO(f.read())
+
+    # Try pypdf first (pure Python, fast, reliable encryption detection)
+    try:
+        import pypdf
+        try:
+            reader = pypdf.PdfReader(stream)
+            if reader.is_encrypted:
+                try:
+                    decrypted = reader.decrypt("")
+                    if not decrypted:
+                        raise ValueError("This PDF is password-protected. Please provide an unencrypted document.")
+                except Exception as e:
+                    if isinstance(e, ValueError):
+                        raise
+                    raise ValueError("This PDF is password-protected. Please provide an unencrypted document.")
+
+            pages_text = []
+            for page in reader.pages:
+                t = page.extract_text()
+                if t:
+                    pages_text.append(t)
+            full_text = "\n\n".join(pages_text)
+            cleaned = ISPDFExtractor._clean(full_text).strip()
+            if not cleaned:
+                raise ValueError("No readable text found in this PDF. It may be scanned or empty.")
+            return cleaned
+        except (pypdf.errors.PdfReadError, pypdf.errors.PyPdfError) as err:
+            raise ValueError(f"Corrupted or invalid PDF file: {err}")
+    except ImportError:
+        pass
+
+    # Fallback to pdfplumber if pypdf is not installed
+    try:
+        import pdfplumber
+        stream.seek(0)
+        try:
+            with pdfplumber.open(stream) as pdf:
+                pages_text = []
+                for page in pdf.pages:
+                    t = page.extract_text()
+                    if t:
+                        pages_text.append(t)
+                full_text = "\n\n".join(pages_text)
+                cleaned = ISPDFExtractor._clean(full_text).strip()
+                if not cleaned:
+                    raise ValueError("No readable text found in this PDF. It may be scanned or empty.")
+                return cleaned
+        except Exception as err:
+            raise ValueError(f"Could not read PDF: {err}")
+    except ImportError:
+        raise RuntimeError("No PDF extraction library available (neither pypdf nor pdfplumber is installed).")

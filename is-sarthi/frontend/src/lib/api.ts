@@ -5,6 +5,7 @@ import {
   GraphResponse,
   TranscribeResponse,
   SynthesizeResponse,
+  ExtractPdfResponse,
 } from './types';
 
 const API_BASE = '/api';
@@ -98,4 +99,21 @@ export async function submitFeedback(is_number: string, verdict: 'relevant' | 'i
     body: JSON.stringify({ is_number, verdict, query }),
   });
   return res.ok;
+}
+
+export async function extractPdfText(file: File): Promise<ExtractPdfResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/extract-pdf`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to extract text from PDF' }));
+    throw new Error(err.detail || 'Failed to extract text from PDF');
+  }
+
+  return res.json();
 }

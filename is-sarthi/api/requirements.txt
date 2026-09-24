@@ -5,3 +5,4 @@ numpy>=1.26.0
 scikit-learn>=1.4.0
 requests>=2.31.0
 python-multipart>=0.0.9
+pypdf>=5.0.0

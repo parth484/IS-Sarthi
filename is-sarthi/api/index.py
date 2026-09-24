@@ -24,6 +24,7 @@ if str(BASE_DIR) not in sys.path:
 
 from scripts.demo_offline import OfflineCorpus
 from pipeline.utils.normalize import extract_all_is_references, normalize_is_number
+from pipeline.scrapers.pdf_extractor import extract_text_from_pdf
 from ui import speech_service
 
 logging.basicConfig(level=logging.INFO)
@@ -304,3 +305,36 @@ def synthesize_speech_narration(req: SynthesizeRequest):
 def record_feedback(req: FeedbackRequest):
     logger.info("Feedback for %s: %s (query: %s)", req.is_number, req.verdict, req.query)
     return {"success": True, "message": "Feedback recorded."}
+
+
+@app.post("/api/extract-pdf")
+async def extract_pdf_document(file: UploadFile = File(...)):
+    """Extract readable text from an uploaded specification PDF."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file format. Only .pdf files are accepted.",
+        )
+
+    content = await file.read()
+    if not content or len(content) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded PDF file is empty (0 bytes).",
+        )
+
+    try:
+        text = extract_text_from_pdf(content)
+        return {
+            "text": text,
+            "filename": file.filename,
+            "character_count": len(text),
+        }
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as exc:
+        logger.error("PDF extraction error: %s", exc)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to process PDF: {str(exc)}",
+        )
