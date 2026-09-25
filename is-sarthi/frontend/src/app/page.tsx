@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Search, Sparkles, FileUp, Download, Loader2, RefreshCw } from 'lucide-react';
-import { recommendStandards, extractPdfText } from '@/lib/api';
-import { Recommendation } from '@/lib/types';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Sparkles, FileUp, Download, Loader2, RefreshCw, Building2, Globe } from 'lucide-react';
+import { recommendStandards, extractDocumentText, fetchSampleTenders } from '@/lib/api';
+import { Recommendation, ProcurementTender } from '@/lib/types';
 import RecommendationCard from '@/components/RecommendationCard';
 import VoiceRecorder from '@/components/VoiceRecorder';
 
@@ -40,8 +40,18 @@ export default function SearchPage() {
   const [stageMessage, setStageMessage] = useState('');
   const [results, setResults] = useState<Recommendation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [extractingPdf, setExtractingPdf] = useState(false);
+  const [extractingDoc, setExtractingDoc] = useState(false);
+  const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
+  const [normalizedQuery, setNormalizedQuery] = useState<string | null>(null);
+  const [sampleTenders, setSampleTenders] = useState<ProcurementTender[]>([]);
+  const [showTenders, setShowTenders] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchSampleTenders()
+      .then(setSampleTenders)
+      .catch(() => {});
+  }, []);
 
   const handleSearch = async (overrideQuery?: string) => {
     const q = (overrideQuery ?? query).trim();
@@ -50,17 +60,22 @@ export default function SearchPage() {
     setLoading(true);
     setError(null);
     setResults(null);
+    setDetectedLanguage(null);
+    setNormalizedQuery(null);
 
     try {
-      setStageMessage('Stage 1/3: Computing dense & sparse hybrid embeddings...');
+      setStageMessage('Stage 1/3: Normalizing specification & computing dense/sparse embeddings...');
       await new Promise((r) => setTimeout(r, 120));
 
-      setStageMessage('Stage 2/3: Traversing citation graph for normative closure & test methods...');
+      setStageMessage('Stage 2/3: Traversing citation graph for normative closure & allied roles...');
       await new Promise((r) => setTimeout(r, 120));
 
-      setStageMessage('Stage 3/3: Evaluating Gazette QCO certification rules & formulating justifications...');
+      setStageMessage('Stage 3/3: Formulating tender compliance clauses & evaluating certification rules...');
 
       const res = await recommendStandards(q, topK, division);
+      setDetectedLanguage(res.detected_language || null);
+      setNormalizedQuery(res.normalized_query || null);
+
       if (res.state === 'low_confidence' || !res.recommendations?.length) {
         setError(res.message || 'No confident match found. Please include more specific technical attributes.');
         setResults([]);
@@ -80,30 +95,46 @@ export default function SearchPage() {
     handleSearch(presetText);
   };
 
+  const handleSelectTender = (tender: ProcurementTender) => {
+    const spec = tender.raw_specification || tender.title;
+    setQuery(spec);
+    handleSearch(spec);
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please upload a valid .pdf file.');
+    const lowerName = file.name.toLowerCase();
+    const validExtensions = ['.pdf', '.docx', '.txt'];
+    const isValid = validExtensions.some((ext) => lowerName.endsWith(ext));
+
+    if (!isValid) {
+      setError('Please upload a valid document (.pdf, .docx, or .txt).');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    setExtractingPdf(true);
+    if (file.size > 20 * 1024 * 1024) {
+      setError('File size exceeds the 20 MB limit.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setExtractingDoc(true);
     setError(null);
 
     try {
-      const data = await extractPdfText(file);
+      const data = await extractDocumentText(file);
       if (data.text) {
         setQuery(data.text);
       } else {
-        setError('No readable text found in this PDF. It may be scanned or empty.');
+        setError('No readable text found in this document. The file may be empty or contain only images.');
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to extract text from PDF document.');
+      setError(err?.message || 'Failed to extract text from document.');
     } finally {
-      setExtractingPdf(false);
+      setExtractingDoc(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -127,18 +158,28 @@ export default function SearchPage() {
     const lines = [`# IS Sarthi Recommendation Report`, `Query: ${query}\n`];
     results.forEach((r) => {
       lines.push(`## ${r.is_number}: ${r.title}`);
-      lines.push(`- Status: ${r.status} | Confidence: ${r.confidence}`);
-      lines.push(`- Justification: ${r.justification}`);
-      if (r.tender_clause) {
-        lines.push(`- Tender Clause:\n\`\`\`\n${r.tender_clause}\n\`\`\`\n`);
+      lines.push(`- Status: ${r.status.toUpperCase()}`);
+      lines.push(`- Current Edition: ${r.latest_version}`);
+      if (r.superseded_by) lines.push(`- Consolidated into: ${r.superseded_by}`);
+      if (r.amendments?.length) {
+        lines.push(`- Amendments: ${r.amendments.map((a) => `Amdt ${a.number} (${a.date || ''})`).join(', ')}`);
       }
+      lines.push(`- Confidence: ${r.band} (${r.confidence.toFixed(3)})`);
+      lines.push(`- Scope Justification: ${r.justification}`);
+      if (r.certification) {
+        lines.push(`- Mandatory Certification Scheme: ${r.certification.scheme_label || r.certification.scheme}`);
+      }
+      if (r.tender_clause) {
+        lines.push(`\n### Tender Specification Clause:\n\`\`\`\n${r.tender_clause}\n\`\`\`\n`);
+      }
+      lines.push('\n---\n');
     });
 
     const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `is_sarthi_summary_${Date.now()}.md`;
+    a.download = `is_sarthi_report_${Date.now()}.md`;
     a.click();
   };
 
@@ -151,7 +192,7 @@ export default function SearchPage() {
           <span>Recommend Applicable Standards for Procurement</span>
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Enter a procurement description, component specification, or upload tender drafting text. The engine identifies
+          Enter a procurement description, component specification, or upload tender drafting documents (.pdf, .docx, .txt). The engine identifies
           primary standards, allied test methods, and mandatory certification rules.
         </p>
       </div>
@@ -179,6 +220,43 @@ export default function SearchPage() {
         </div>
       </div>
 
+      {/* Procurement Portal Integration (GeM Adapter Feed) */}
+      {sampleTenders.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-govNavy-900 flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-govSaffron-500" />
+              <span>Government e-Marketplace (GeM) Tender Connector:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowTenders(!showTenders)}
+              className="text-xs text-blue-700 hover:text-blue-800 font-semibold"
+            >
+              {showTenders ? 'Hide Sample GeM Bids' : `Explore ${sampleTenders.length} Verified Public GeM Bids`}
+            </button>
+          </div>
+          {showTenders && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              {sampleTenders.map((t) => (
+                <div
+                  key={t.tender_id}
+                  onClick={() => handleSelectTender(t)}
+                  className="bg-white border border-slate-200 hover:border-govSaffron-500 p-2.5 rounded-lg cursor-pointer transition-all text-xs shadow-xs"
+                >
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                    <span className="font-bold text-govNavy-900">{t.tender_id}</span>
+                    <span>{t.portal || 'GeM'}</span>
+                  </div>
+                  <div className="font-semibold text-slate-800 mt-1 line-clamp-1">{t.title}</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">{t.organization}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Voice Dictation (Sarvam AI STT) */}
       <VoiceRecorder onTranscribe={(text) => setQuery(text)} />
 
@@ -191,21 +269,21 @@ export default function SearchPage() {
             </label>
             <label
               className={`flex items-center gap-1 text-xs font-medium transition-colors ${
-                extractingPdf ? 'text-slate-400 cursor-not-allowed' : 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                extractingDoc ? 'text-slate-400 cursor-not-allowed' : 'text-blue-700 hover:text-blue-800 cursor-pointer'
               }`}
             >
-              {extractingPdf ? (
+              {extractingDoc ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
               ) : (
                 <FileUp className="w-3.5 h-3.5" />
               )}
-              <span>{extractingPdf ? 'Extracting PDF...' : 'Upload PDF File'}</span>
+              <span>{extractingDoc ? 'Extracting Document...' : 'Upload Document (PDF, DOCX, TXT)'}</span>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,application/pdf"
+                accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                 onChange={handleFileUpload}
-                disabled={extractingPdf}
+                disabled={extractingDoc}
                 className="hidden"
               />
             </label>
@@ -214,10 +292,20 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             rows={4}
-            placeholder="e.g. 3 core armoured copper conductor XLPE insulated cable for working voltages up to 1100 V..."
+            placeholder="e.g. 3 core armoured copper conductor XLPE insulated cable for working voltages up to 1100 V... Or type in Hindi/Marathi"
             className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-900 placeholder:text-slate-400"
           />
         </div>
+
+        {/* Multilingual Query Translation Notification Banner */}
+        {detectedLanguage && detectedLanguage !== 'en-IN' && normalizedQuery && (
+          <div className="bg-indigo-50 border border-indigo-200 text-indigo-950 rounded-lg p-2.5 text-xs flex items-center gap-2">
+            <Globe className="w-4 h-4 text-indigo-600 shrink-0" />
+            <span>
+              Query translated from <strong>{detectedLanguage === 'hi-IN' ? 'Hindi (हिन्दी)' : detectedLanguage === 'mr-IN' ? 'Marathi (मराठी)' : detectedLanguage}</strong> to English technical representation for retrieval: <em>"{normalizedQuery}"</em>
+            </span>
+          </div>
+        )}
 
         {/* Filter Row & Submit Button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">

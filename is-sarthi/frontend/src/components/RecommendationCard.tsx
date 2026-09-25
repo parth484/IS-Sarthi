@@ -80,6 +80,25 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
     }
   };
 
+  const getRoleIcon = (r: string) => {
+    switch (r.toLowerCase()) {
+      case 'test method':
+        return '🧪';
+      case 'safety':
+        return '🛡️';
+      case 'installation':
+        return '🔧';
+      case 'terminology':
+        return '📖';
+      case 'sampling':
+        return '📊';
+      case 'dimensions':
+        return '📏';
+      default:
+        return '📦';
+    }
+  };
+
   const alliedRoles = rec.allied ? Object.entries(rec.allied) : [];
   const totalAlliedCount = alliedRoles.reduce((acc, [_, items]) => acc + items.length, 0);
 
@@ -87,10 +106,12 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all">
       {/* Top Row: IS Number, Version & Confidence Badge */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-3">
-        <div>
+          <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h3 className="text-xl font-bold text-govNavy-900 tracking-tight">{rec.is_number}</h3>
-            <span className="text-xs text-slate-500 font-mono">({rec.latest_version})</span>
+            <span className="text-xs bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-mono font-medium">
+              Edition: {rec.latest_version}
+            </span>
             {getStatusBadge()}
             {rec.superseded_by && (
               <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded text-xs font-bold">
@@ -99,6 +120,23 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
             )}
           </div>
           <h4 className="text-base font-semibold text-blue-900 mt-1.5">{rec.title}</h4>
+
+          {/* Amendments UI (surfaced only when verified amendments exist) */}
+          {rec.amendments && rec.amendments.length > 0 && (
+            <div className="mt-2 flex items-center gap-1.5 flex-wrap text-xs">
+              <span className="text-slate-600 font-semibold flex items-center gap-1">
+                <span>📜 Gazette Amendments ({rec.amendments.length}):</span>
+              </span>
+              {rec.amendments.map((amdt) => (
+                <span
+                  key={amdt.number}
+                  className="inline-flex items-center bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded text-[11px] font-mono font-medium"
+                >
+                  Amdt {amdt.number} {amdt.date ? `(${amdt.date})` : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="text-left sm:text-right shrink-0">
@@ -149,21 +187,66 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
         </div>
       )}
 
-      {/* Mandatory Certification Callout */}
-      {rec.certification && (rec.certification.mandatory || rec.certification.scheme) && (
-        <div className="mt-3 bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs sm:text-sm text-amber-900 flex items-start gap-2.5">
-          <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold text-amber-900">
-              MANDATORY CERTIFICATION: {rec.certification.scheme_label || rec.certification.scheme || 'ISI'}
-            </span>
-            <p className="text-amber-800 mt-0.5 text-xs leading-relaxed">
-              Bidders <strong>must hold a valid BIS license</strong> for {rec.certification.product || 'this item'}.
-              Supplying uncertified goods is legally prohibited under the Gazette Quality Control Order (QCO).
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Granular Mandatory Certification Callout (ISI / CRS / Hallmarking) */}
+      {rec.certification && (rec.certification.mandatory || rec.certification.scheme) && (() => {
+        const scheme = (rec.certification.scheme || 'ISI').toUpperCase();
+        const product = rec.certification.product || 'this item';
+        if (scheme === 'CRS') {
+          return (
+            <div className="mt-3 bg-indigo-50 border border-indigo-200 p-3 rounded-lg text-xs sm:text-sm text-indigo-950 flex items-start gap-2.5">
+              <ShieldCheck className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-indigo-900 flex items-center gap-2">
+                  <span>MANDATORY BIS REGISTRATION (CRS SCHEME-II)</span>
+                  <span className="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-semibold uppercase">
+                    Compulsory Registration
+                  </span>
+                </span>
+                <p className="text-indigo-800 mt-0.5 text-xs leading-relaxed">
+                  Bidders <strong>must hold a valid BIS Registration Number (R-number)</strong> for {product}.
+                  Products must bear the standard BIS Self-Declaration mark in compliance with Scheme-II of BIS (Conformity Assessment) Regulations.
+                </p>
+              </div>
+            </div>
+          );
+        } else if (scheme === 'HALLMARKING') {
+          return (
+            <div className="mt-3 bg-amber-50 border border-amber-300 p-3 rounded-lg text-xs sm:text-sm text-amber-950 flex items-start gap-2.5">
+              <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-900 flex items-center gap-2">
+                  <span>MANDATORY BIS HALLMARKING & HUID</span>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-semibold uppercase">
+                    Precious Articles
+                  </span>
+                </span>
+                <p className="text-amber-800 mt-0.5 text-xs leading-relaxed">
+                  Supplied articles ({product}) <strong>must bear mandatory BIS Hallmarking</strong> with a 6-digit alphanumeric
+                  Hallmarking Unique Identification (HUID) and certified fineness grade under BIS (Hallmarking) Regulations.
+                </p>
+              </div>
+            </div>
+          );
+        } else {
+          return (
+            <div className="mt-3 bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs sm:text-sm text-amber-900 flex items-start gap-2.5">
+              <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-900 flex items-center gap-2">
+                  <span>MANDATORY CERTIFICATION: {rec.certification.scheme_label || 'BIS Product Certification (ISI Mark)'}</span>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-semibold uppercase">
+                    Gazette QCO
+                  </span>
+                </span>
+                <p className="text-amber-800 mt-0.5 text-xs leading-relaxed">
+                  Bidders <strong>must hold an active BIS CM/L license</strong> to affix the ISI mark for {product}.
+                  Supplying uncertified goods is legally prohibited under the Gazette Quality Control Order (QCO).
+                </p>
+              </div>
+            </div>
+          );
+        }
+      })()}
 
       {/* Allied Standards & Normative References */}
       {totalAlliedCount > 0 && (
@@ -182,7 +265,10 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
               {alliedRoles.map(([role, items]) => (
                 <div key={role} className="border border-slate-100 rounded-md p-2.5 bg-slate-50/50">
                   <h5 className="font-bold text-slate-800 mb-1.5 flex items-center justify-between">
-                    <span>{role}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span>{getRoleIcon(role)}</span>
+                      <span>{role}</span>
+                    </span>
                     <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-normal">
                       {items.length}
                     </span>

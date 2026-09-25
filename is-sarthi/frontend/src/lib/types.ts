@@ -1,15 +1,34 @@
+export type CertificationScheme = 'ISI' | 'CRS' | 'Hallmarking' | string;
+
 export interface Certification {
-  scheme?: string;
+  scheme?: CertificationScheme;
   scheme_label?: string;
   mandatory?: boolean;
   product?: string;
+  details?: string;
 }
+
+export interface Amendment {
+  number: string;
+  date?: string | null;
+}
+
+export type AlliedRole =
+  | 'Test method'
+  | 'Related product'
+  | 'Terminology'
+  | 'Safety'
+  | 'Installation'
+  | 'Sampling'
+  | 'Dimensions'
+  | string;
 
 export interface AlliedItem {
   is_number: string;
   title: string;
   status?: string;
   ref_type?: string;
+  role?: AlliedRole;
   hop?: number;
   relevance?: number;
 }
@@ -24,6 +43,7 @@ export interface Recommendation {
   band: 'High' | 'Medium' | 'Low';
   justification: string;
   certification?: Certification | null;
+  amendments?: Amendment[];
   allied?: Record<string, AlliedItem[]>;
   tender_clause?: string;
   signals?: {
@@ -37,6 +57,8 @@ export interface RecommendResponse {
   state: 'ok' | 'low_confidence' | 'error';
   message?: string;
   recommendations: Recommendation[];
+  normalized_query?: string;
+  detected_language?: string;
 }
 
 export interface AuditIssue {
@@ -106,8 +128,41 @@ export interface SynthesizeResponse {
   audio_base64: string;
 }
 
-export interface ExtractPdfResponse {
+export interface ExtractDocumentResponse {
   text: string;
   filename: string;
   character_count: number;
+  format?: string;
+}
+
+export type ExtractPdfResponse = ExtractDocumentResponse;
+
+export interface ProcurementTender {
+  tender_id: string;
+  title: string;
+  portal?: string;
+  organization?: string;
+  reference_number?: string;
+  closing_date?: string | null;
+  category?: string;
+  raw_specification?: string;
+  line_items?: Array<{ item: string; quantity: string } | string>;
+  metadata?: Record<string, any>;
+}
+
+export interface ProcurementIngestResponse {
+  tender: {
+    tender_id: string;
+    title: string;
+    portal: string;
+    organization: string;
+    normalized_query: string;
+    technical_parameters?: Record<string, any>;
+    cited_standards?: string[];
+    raw_specification?: string;
+  };
+  recommendations: Recommendation[];
+  state: 'ok' | 'low_confidence' | 'error';
+  query_used: string;
+  validation?: ValidateResponse | null;
 }

@@ -13,7 +13,7 @@ export default function Navbar() {
   useEffect(() => {
     fetchHealth()
       .then(setTelemetry)
-      .catch(() => setTelemetry({ status: 'offline', standards_indexed: 57, voice_enabled: true }));
+      .catch(() => setTelemetry(null));
   }, []);
 
   const navItems = [
@@ -63,7 +63,7 @@ export default function Navbar() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
               <span>
-                <strong>{telemetry?.standards_indexed ?? 57}</strong> Standards Indexed
+                <strong>{telemetry?.standards_indexed !== undefined ? telemetry.standards_indexed : '—'}</strong> Standards Indexed
               </span>
               <span className="text-slate-600">•</span>
               <span className="flex items-center gap-1 text-govSaffron-500">

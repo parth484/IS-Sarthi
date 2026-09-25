@@ -24,7 +24,11 @@ if str(BASE_DIR) not in sys.path:
 
 from scripts.demo_offline import OfflineCorpus
 from pipeline.utils.normalize import extract_all_is_references, normalize_is_number
+from pipeline.classify import ROLE_LABELS
+from pipeline.scrapers.doc_extractor import extract_document_text
 from pipeline.scrapers.pdf_extractor import extract_text_from_pdf
+from pipeline.utils.multilingual import normalize_query_for_retrieval
+from pipeline.procurement.service import ProcurementService
 from ui import speech_service
 
 logging.basicConfig(level=logging.INFO)
@@ -60,49 +64,119 @@ def _load_corpus() -> OfflineCorpus:
     raise FileNotFoundError("Could not locate standards.json in data/seed/")
 
 corpus = _load_corpus()
+procurement_service = ProcurementService(corpus)
 
 
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
 def generate_tender_clause(rec: dict) -> str:
-    """Generate legally compliant tender specification clause."""
+    """
+    Generate legally compliant, enforceable tender specification clause.
+    Incorporates distinct certification scheme requirements (ISI/QCO, CRS, Hallmarking)
+    and allied standards categorized across the role taxonomy (Test method, Safety,
+    Installation, Related product, Terminology).
+    """
     is_num = rec.get("is_number", "IS XXXX")
     latest = rec.get("latest_version") or is_num
     title = rec.get("title", "")
     cert = rec.get("certification") or {}
 
+    clause_idx = 1
     clause = [
-        f"1. Standard Conformity: The supplied materials/equipment shall strictly conform to {latest} "
+        f"{clause_idx}. Standard Conformity: The supplied materials/equipment shall strictly conform to {latest} "
         f"('{title}'), including all up-to-date amendments issued by the Bureau of Indian Standards (BIS)."
     ]
 
+    # Granular Certification Scheme Handling
     if cert.get("mandatory") or cert.get("scheme"):
-        scheme = cert.get("scheme_label") or cert.get("scheme", "ISI")
-        clause.append(
-            f"2. Mandatory Certification: The product must bear the valid {scheme} mark as mandated by the "
-            f"appropriate Quality Control Order (QCO) published in the Gazette of India. Uncertified bids shall be summarily rejected."
-        )
+        scheme = str(cert.get("scheme") or "ISI").strip().upper()
+        product = cert.get("product") or "this item"
+        clause_idx += 1
 
+        if scheme == "CRS":
+            clause.append(
+                f"{clause_idx}. Mandatory Compulsory Registration (CRS): The product ('{product}') must be registered "
+                f"under the BIS Compulsory Registration Scheme (CRS) pursuant to Scheme-II of BIS (Conformity Assessment) "
+                f"Regulations, 2018. Bidders must furnish a valid BIS Registration number (R-number) and affix the standard "
+                f"words 'Self Declaration - Conforming to {is_num}' on packaging. Unregistered products shall be summarily rejected."
+            )
+        elif scheme == "HALLMARKING":
+            clause.append(
+                f"{clause_idx}. Mandatory BIS Hallmarking: All articles ('{product}') must bear mandatory BIS Hallmarking "
+                f"with a 6-digit alphanumeric Hallmarking Unique Identification (HUID) and fineness grade in accordance with "
+                f"the Bureau of Indian Standards (Hallmarking) Regulations. Bids offering non-hallmarked articles shall be rejected."
+            )
+        else:  # Standard ISI / QCO
+            scheme_label = cert.get("scheme_label") or "BIS Product Certification (ISI mark)"
+            clause.append(
+                f"{clause_idx}. Mandatory Certification ({scheme_label}): The product must bear the valid Standard ISI Mark "
+                f"under Scheme-I of BIS (Conformity Assessment) Regulations, 2018, as mandated by the applicable Gazette "
+                f"Quality Control Order (QCO). Bidders must hold an active CM/L BIS license on bid submission date. "
+                f"Uncertified bids shall be summarily rejected."
+            )
+
+    # Allied Standards by Taxonomy Role
     allied = rec.get("allied") or rec.get("allied_standards", {}).get("by_role", {})
     if allied:
+        # 1. Test methods
         test_methods = [
             item["is_number"]
             for item in allied.get("Test method", allied.get("test_method", []))
         ]
         if test_methods:
+            clause_idx += 1
             clause.append(
-                f"3. Acceptance & Routine Tests: Acceptance testing at vendor works shall strictly follow testing procedures "
-                f"prescribed in {', '.join(test_methods[:4])}."
+                f"{clause_idx}. Acceptance & Routine Testing: Acceptance testing, lot sampling, and routine quality verification "
+                f"at vendor premises shall strictly comply with test procedures prescribed in {', '.join(test_methods[:4])}."
             )
 
-        conductors = [
+        # 2. Safety
+        safety = [
+            item["is_number"]
+            for item in allied.get("Safety", allied.get("safety", []))
+        ]
+        if safety:
+            clause_idx += 1
+            clause.append(
+                f"{clause_idx}. Operational Safety & Environmental Protection: Equipment design, insulation barriers, and operational "
+                f"safety mechanisms shall strictly adhere to {', '.join(safety[:3])}."
+            )
+
+        # 3. Installation & Erection
+        installation = [
+            item["is_number"]
+            for item in allied.get("Installation", allied.get("installation", []))
+        ]
+        if installation:
+            clause_idx += 1
+            clause.append(
+                f"{clause_idx}. Installation & Code of Practice: Field erection, mounting, laying, earthing, and commissioning "
+                f"practices shall strictly follow {', '.join(installation[:3])}."
+            )
+
+        # 4. Related Products & Raw Materials
+        related_products = [
             item["is_number"]
             for item in allied.get("Related product", allied.get("related_product", []))
         ]
-        if conductors:
+        if related_products:
+            clause_idx += 1
             clause.append(
-                f"4. Normative Raw Materials: Raw materials and components shall satisfy {', '.join(conductors[:3])}."
+                f"{clause_idx}. Normative Raw Materials & Feedstocks: Sub-components, conductors, and raw materials used in manufacture "
+                f"shall conform to {', '.join(related_products[:3])}."
+            )
+
+        # 5. Terminology & Definitions
+        terminology = [
+            item["is_number"]
+            for item in allied.get("Terminology", allied.get("terminology", []))
+        ]
+        if terminology:
+            clause_idx += 1
+            clause.append(
+                f"{clause_idx}. Terminology & Standards Nomenclature: Technical definitions, ratings, and engineering nomenclature "
+                f"shall be interpreted in accordance with {', '.join(terminology[:3])}."
             )
 
     return "\n\n".join(clause)
@@ -213,7 +287,7 @@ def get_standard_graph(is_number: str, depth: int = 1):
 
         for ref in corpus.graph.get(current, []):
             child = ref["is_number"]
-            role = ref.get("ref_type", "reference")
+            role = ROLE_LABELS.get(ref.get("ref_type"), "Related product")
             edges.append({
                 "source": current,
                 "target": child,
@@ -238,7 +312,10 @@ def get_standard_graph(is_number: str, depth: int = 1):
 
 @app.post("/api/recommend")
 def recommend_standards(req: RecommendRequest):
-    result = corpus.recommend(req.query.strip(), top_k=req.top_k)
+    # Multilingual query normalization (Hindi, Marathi, Telugu, Tamil, English)
+    normalized_q, detected_lang, orig_q = normalize_query_for_retrieval(req.query.strip())
+
+    result = corpus.recommend(normalized_q, top_k=req.top_k)
     recs = result.get("recommendations", [])
     
     if req.division and req.division != "All Divisions":
@@ -248,6 +325,11 @@ def recommend_standards(req: RecommendRequest):
     # Add pre-computed tender clauses to each recommendation
     for r in recs:
         r["tender_clause"] = generate_tender_clause(r)
+
+    # Preserve original user query for UI display while exposing normalized retrieval representation
+    result["query"] = orig_q
+    result["normalized_query"] = normalized_q
+    result["detected_language"] = detected_lang
 
     return result
 
@@ -307,34 +389,85 @@ def record_feedback(req: FeedbackRequest):
     return {"success": True, "message": "Feedback recorded."}
 
 
-@app.post("/api/extract-pdf")
-async def extract_pdf_document(file: UploadFile = File(...)):
-    """Extract readable text from an uploaded specification PDF."""
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
+@app.post("/api/extract-document")
+async def extract_document_endpoint(file: UploadFile = File(...)):
+    """Extract readable text from an uploaded specification document (.pdf, .docx, .txt)."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is missing from upload.")
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in (".pdf", ".docx", ".txt"):
         raise HTTPException(
             status_code=400,
-            detail="Invalid file format. Only .pdf files are accepted.",
+            detail=f"Unsupported document format '{ext}'. Accepted formats: .pdf, .docx, .txt.",
         )
 
     content = await file.read()
     if not content or len(content) == 0:
         raise HTTPException(
             status_code=400,
-            detail="The uploaded PDF file is empty (0 bytes).",
+            detail=f"The uploaded document '{file.filename}' is empty (0 bytes).",
         )
 
     try:
-        text = extract_text_from_pdf(content)
+        text = extract_document_text(content, file.filename)
         return {
             "text": text,
             "filename": file.filename,
             "character_count": len(text),
+            "format": ext.lstrip("."),
         }
     except ValueError as val_err:
         raise HTTPException(status_code=400, detail=str(val_err))
     except Exception as exc:
-        logger.error("PDF extraction error: %s", exc)
+        logger.error("Document extraction error: %s", exc)
         raise HTTPException(
             status_code=500,
-            detail=f"Unable to process PDF: {str(exc)}",
+            detail=f"Unable to process document: {str(exc)}",
         )
+
+
+@app.post("/api/extract-pdf")
+async def extract_pdf_document(file: UploadFile = File(...)):
+    """Backward compatibility endpoint for PDF extraction."""
+    return await extract_document_endpoint(file)
+
+
+# -----------------------------------------------------------------------------
+# Procurement Portal Integration Endpoints
+# -----------------------------------------------------------------------------
+class ProcurementIngestRequest(BaseModel):
+    tender_id_or_data: Any = Field(..., description="Tender ID (e.g. GEM/2026/B/892104) or full tender specification object")
+    portal: Optional[str] = Field("gem", description="Procurement portal connector ('gem' or 'generic')")
+    top_k: int = Field(5, ge=1, le=15)
+    division: Optional[str] = None
+
+
+@app.get("/api/procurement/sample-tenders")
+def get_sample_procurement_tenders():
+    """Return sample verified GeM public procurement tenders for testing."""
+    return procurement_service.get_sample_tenders()
+
+
+@app.post("/api/procurement/ingest")
+def ingest_procurement_tender(req: ProcurementIngestRequest):
+    """
+    Ingest a procurement tender, normalize specification, and pass into the
+    existing BIS recommendation engine.
+    """
+    try:
+        res = procurement_service.ingest_and_recommend(
+            tender_input=req.tender_id_or_data,
+            connector_type=req.portal or "gem",
+            top_k=req.top_k,
+            division=req.division,
+        )
+        # Add pre-computed tender clauses to recommendations
+        for r in res.get("recommendations", []):
+            if not r.get("tender_clause"):
+                r["tender_clause"] = generate_tender_clause(r)
+        return res
+    except Exception as exc:
+        logger.error("Procurement ingestion failed: %s", exc)
+        raise HTTPException(status_code=400, detail=f"Failed to ingest procurement tender: {exc}")
+

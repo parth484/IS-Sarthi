@@ -5,7 +5,10 @@ import {
   GraphResponse,
   TranscribeResponse,
   SynthesizeResponse,
+  ExtractDocumentResponse,
   ExtractPdfResponse,
+  ProcurementTender,
+  ProcurementIngestResponse,
 } from './types';
 
 const API_BASE = '/api';
@@ -101,18 +104,46 @@ export async function submitFeedback(is_number: string, verdict: 'relevant' | 'i
   return res.ok;
 }
 
-export async function extractPdfText(file: File): Promise<ExtractPdfResponse> {
+export async function extractDocumentText(file: File): Promise<ExtractDocumentResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch(`${API_BASE}/extract-pdf`, {
+  const res = await fetch(`${API_BASE}/extract-document`, {
     method: 'POST',
     body: formData,
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Failed to extract text from PDF' }));
-    throw new Error(err.detail || 'Failed to extract text from PDF');
+    const err = await res.json().catch(() => ({ detail: 'Failed to extract text from document' }));
+    throw new Error(err.detail || 'Failed to extract text from document');
+  }
+
+  return res.json();
+}
+
+export async function extractPdfText(file: File): Promise<ExtractPdfResponse> {
+  return extractDocumentText(file);
+}
+
+export async function fetchSampleTenders(): Promise<ProcurementTender[]> {
+  const res = await fetch(`${API_BASE}/procurement/sample-tenders`);
+  if (!res.ok) throw new Error('Failed to load sample procurement tenders');
+  return res.json();
+}
+
+export async function ingestProcurementTender(
+  tender_id_or_data: any,
+  portal: string = 'gem'
+): Promise<ProcurementIngestResponse> {
+  const res = await fetch(`${API_BASE}/procurement/ingest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tender_id_or_data, portal }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Procurement tender ingestion failed' }));
+    throw new Error(err.detail || 'Procurement tender ingestion failed');
   }
 
   return res.json();

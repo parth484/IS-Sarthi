@@ -154,6 +154,7 @@ class OfflineCorpus:
                     "title": record.get("title") or ref.get("title"),
                     "status": record.get("status", "unknown"),
                     "ref_type": ref["ref_type"],
+                    "role": ROLE_LABELS.get(ref["ref_type"], "Related product"),
                     "hop": hop + 1,
                 }
                 frontier.append((target, hop + 1))
@@ -171,7 +172,8 @@ class OfflineCorpus:
 
         by_role: dict[str, list[dict]] = {}
         for item in sorted(seen.values(), key=lambda i: -i.get("relevance", 0)):
-            by_role.setdefault(ROLE_LABELS.get(item["ref_type"], "Related"), []).append(item)
+            role_label = ROLE_LABELS.get(item["ref_type"], "Related product")
+            by_role.setdefault(role_label, []).append(item)
         return by_role
 
     def justify(self, query: str, record: dict) -> str:
@@ -213,6 +215,7 @@ class OfflineCorpus:
                          else "Medium" if entry["confidence"] >= 0.5 else "Low"),
                 "justification": self.justify(query, record),
                 "certification": certification or None,
+                "amendments": amendments,
                 "allied": self.allied(record["is_number"], query),
                 "signals": {"dense_rank": entry["dense_rank"],
                             "sparse_rank": entry["sparse_rank"]},
