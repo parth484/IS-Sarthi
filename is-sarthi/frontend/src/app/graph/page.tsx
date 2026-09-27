@@ -1,20 +1,42 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Network, Loader2, Info, Building2, Sparkles } from 'lucide-react';
-import { fetchStandards, fetchStandardGraph } from '@/lib/api';
+import { Network, Loader2, Info, Building2, Sparkles, ExternalLink, ArrowLeft } from 'lucide-react';
+import { fetchStandards, fetchStandardGraph, getStandardDetailUrl } from '@/lib/api';
 import { GraphResponse } from '@/lib/types';
 
+function GraphContent() {
+  const searchParams = useSearchParams();
+  const paramStandard = searchParams?.get('standard') || searchParams?.get('is_number');
 
-
-export default function GraphPage() {
   const [standards, setStandards] = useState<string[]>([]);
-  const [selectedStandard, setSelectedStandard] = useState('IS 1554-1');
+  const [selectedStandard, setSelectedStandard] = useState<string>(() => {
+    if (paramStandard) {
+      try {
+        return decodeURIComponent(paramStandard).trim();
+      } catch {
+        return paramStandard.trim();
+      }
+    }
+    return 'IS 1554-1';
+  });
   const [depth, setDepth] = useState(1);
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (paramStandard) {
+      try {
+        const decoded = decodeURIComponent(paramStandard).trim();
+        if (decoded) setSelectedStandard(decoded);
+      } catch {
+        setSelectedStandard(paramStandard.trim());
+      }
+    }
+  }, [paramStandard]);
 
   useEffect(() => {
     fetchStandards()
@@ -44,7 +66,7 @@ export default function GraphPage() {
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-govNavy-900 tracking-tight flex items-center gap-2">
           <Network className="w-6 h-6 text-govSaffron-500" />
-          <span>Interactive Dependency Graph (Normative Closure)</span>
+          <span>Normative Citation Dependency Graph</span>
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Standards do not exist in isolation. A product standard relies on test methods, materials, and safety codes.
@@ -52,31 +74,37 @@ export default function GraphPage() {
         </p>
       </div>
 
-      {/* Control Bar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+      {/* Control Bar: Selector & Depth */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-1 max-w-md">
           <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Select Standard:</span>
           <select
             value={selectedStandard}
             onChange={(e) => setSelectedStandard(e.target.value)}
-            className="w-full sm:w-64 bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-govNavy-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none"
           >
             {standards.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
             ))}
+            {/* Include custom or selected standard if not in the default seed list */}
+            {selectedStandard && !standards.includes(selectedStandard) && (
+              <option value={selectedStandard}>
+                {selectedStandard} (Selected)
+              </option>
+            )}
           </select>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <span className="text-xs font-semibold text-slate-700">Graph Depth:</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-700">Traversal Depth:</span>
           <select
             value={depth}
             onChange={(e) => setDepth(Number(e.target.value))}
-            className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-govNavy-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none"
           >
-            <option value={1}>1 Hop (Direct References)</option>
+            <option value={1}>1 Hop (Direct Normative References)</option>
             <option value={2}>2 Hops (Transitive Closure)</option>
           </select>
         </div>
@@ -84,9 +112,18 @@ export default function GraphPage() {
 
       {/* Target Node Overview */}
       {targetNode && (
-        <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <span className="text-xs uppercase tracking-wider text-blue-700 font-bold">Target Standard</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-wider text-blue-700 font-bold">Target Standard</span>
+              <Link
+                href={getStandardDetailUrl(targetNode.id)}
+                className="text-xs text-blue-700 hover:text-blue-900 hover:underline font-semibold inline-flex items-center gap-1"
+              >
+                <span>View Dossier</span>
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
             <h3 className="text-base font-bold text-govNavy-900 mt-0.5">
               {targetNode.id}: {targetNode.title}
             </h3>
@@ -116,7 +153,6 @@ export default function GraphPage() {
               Status: {targetNode.status}
             </span>
           </div>
-
         </div>
       )}
 
@@ -158,147 +194,134 @@ export default function GraphPage() {
             <div className="flex-1 flex items-center justify-center overflow-auto p-4">
               <svg viewBox="0 0 600 360" className="w-full h-full max-h-[360px]">
                 {/* Center / Target Node */}
-                <g transform="translate(180, 180)">
-                  <rect
-                    x="-90"
-                    y="-28"
-                    width="180"
-                    height="56"
-                    rx="8"
-                    className="fill-govNavy-900 stroke-blue-600 stroke-2"
-                  />
+                <g className="cursor-pointer" onClick={() => targetNode && setSelectedStandard(targetNode.id)}>
+                  <circle cx="300" cy="180" r="32" className="fill-blue-700 stroke-blue-900 stroke-2" />
                   <text
-                    x="0"
-                    y="-4"
+                    x="300"
+                    y="184"
                     textAnchor="middle"
-                    className="fill-white font-bold text-xs"
+                    className="fill-white font-mono font-bold text-[10px] pointer-events-none"
                   >
-                    {targetNode?.id}
+                    {targetNode ? targetNode.id.slice(0, 10) : 'Target'}
                   </text>
                   <text
-                    x="0"
-                    y="14"
+                    x="300"
+                    y="226"
                     textAnchor="middle"
-                    className="fill-blue-200 text-[9px]"
+                    className="fill-slate-700 font-sans font-bold text-[11px] pointer-events-none"
                   >
                     (Target Standard)
                   </text>
                 </g>
 
-                {/* Satellite Connected Reference Nodes */}
+                {/* Satellite Nodes in Circle */}
                 {otherNodes.map((node, i) => {
                   const total = otherNodes.length;
-                  const angle = (i / total) * Math.PI * 1.8 - Math.PI / 1.1;
-                  const radius = 170;
-                  const cx = 180 + radius * Math.cos(angle);
+                  const angle = (i * (2 * Math.PI)) / total;
+                  const radius = 130;
+                  const cx = 300 + radius * Math.cos(angle);
                   const cy = 180 + radius * Math.sin(angle);
-
-                  const isDefective = node.status === 'superseded' || node.status === 'withdrawn';
-                  const edgeRole = graphData.edges.find((e) => e.target === node.id)?.role || 'reference';
+                  const isCurrent = node.status === 'current';
 
                   return (
-                    <g key={node.id}>
-                      {/* Edge Line */}
+                    <g
+                      key={node.id}
+                      className="cursor-pointer group"
+                      onClick={() => setSelectedStandard(node.id)}
+                    >
                       <line
-                        x1="180"
+                        x1="300"
                         y1="180"
                         x2={cx}
                         y2={cy}
-                        stroke="#94a3b8"
-                        strokeWidth="1.5"
-                        strokeDasharray={isDefective ? '4,4' : 'none'}
+                        className="stroke-slate-300 stroke-1 stroke-dashed"
                       />
-                      {/* Edge Label */}
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r="22"
+                        className={`${
+                          isCurrent ? 'fill-emerald-500 stroke-emerald-700' : 'fill-red-500 stroke-red-700'
+                        } stroke-2 transition-transform duration-200 group-hover:scale-110`}
+                      />
                       <text
-                        x={(180 + cx) / 2}
-                        y={(180 + cy) / 2 - 4}
+                        x={cx}
+                        y={cy + 3}
                         textAnchor="middle"
-                        className="fill-slate-400 text-[8px] font-sans"
+                        className="fill-white font-mono font-bold text-[9px] pointer-events-none"
                       >
-                        {edgeRole}
+                        {node.id.slice(0, 8)}
                       </text>
-
-                      {/* Node Box */}
-                      <g
-                        transform={`translate(${cx}, ${cy})`}
-                        onClick={() => setSelectedStandard(node.id)}
-                        className="cursor-pointer group"
+                      <text
+                        x={cx}
+                        y={cy + 32}
+                        textAnchor="middle"
+                        className="fill-slate-600 font-sans font-medium text-[9px] pointer-events-none"
                       >
-                        <rect
-                          x="-55"
-                          y="-18"
-                          width="110"
-                          height="36"
-                          rx="6"
-                          className={
-                            isDefective
-                              ? 'fill-red-50 stroke-red-400 stroke-1 group-hover:stroke-red-600'
-                              : 'fill-emerald-50 stroke-emerald-400 stroke-1 group-hover:stroke-emerald-600'
-                          }
-                        />
-                        <text
-                          x="0"
-                          y="-2"
-                          textAnchor="middle"
-                          className={`font-mono font-bold text-[10px] ${
-                            isDefective ? 'fill-red-800' : 'fill-emerald-900'
-                          }`}
-                        >
-                          {node.id}
-                        </text>
-                        <text
-                          x="0"
-                          y="10"
-                          textAnchor="middle"
-                          className="fill-slate-500 text-[8px]"
-                        >
-                          [{node.status}]
-                        </text>
-                      </g>
+                        {node.id}
+                      </text>
                     </g>
                   );
                 })}
               </svg>
             </div>
 
-            <p className="text-[11px] text-slate-400 text-center mt-2">
-              💡 Click any referenced node to center and expand its dependency tree.
+            <p className="text-[11px] text-slate-400 text-center mt-2 border-t border-slate-100 pt-2">
+              💡 Click on any satellite node to pivot the citation graph around that standard.
             </p>
           </div>
 
-          {/* Normative References List */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col">
-            <h4 className="text-sm font-bold text-govNavy-900 mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
-              <span>📋 Direct References</span>
-              <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-normal">
-                {otherNodes.length} items
-              </span>
+          {/* Connected Standards List */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+              Connected Standards ({otherNodes.length})
             </h4>
 
             {otherNodes.length === 0 ? (
-              <div className="p-6 text-xs text-slate-500 text-center my-auto space-y-2">
-                <Building2 className="w-8 h-8 text-slate-400 mx-auto" />
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs py-8 text-center space-y-2">
+                <Info className="w-8 h-8 text-slate-300" />
                 <p className="font-semibold text-slate-700">Official BIS Catalogue Standard</p>
-                <p className="text-slate-500 text-[11px] leading-relaxed">
+                <p className="text-[11px] text-slate-500 max-w-xs">
                   Normative citation networks are mapped for Tier 1 seed standards. Standard conformity specifications remain valid for this standard.
                 </p>
+                {targetNode && (
+                  <Link
+                    href={getStandardDetailUrl(targetNode.id)}
+                    className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline font-semibold pt-1"
+                  >
+                    <span>View Catalogue Record →</span>
+                  </Link>
+                )}
               </div>
             ) : (
-
-              <div className="space-y-2.5 overflow-y-auto max-h-[380px] pr-1 text-xs">
+              <div className="space-y-2.5 overflow-y-auto max-h-[360px] pr-1">
                 {otherNodes.map((node) => {
                   const edge = graphData.edges.find((e) => e.target === node.id);
                   return (
                     <div
                       key={node.id}
-                      onClick={() => setSelectedStandard(node.id)}
-                      className="border border-slate-100 p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                      className="border border-slate-100 p-2.5 rounded-lg hover:bg-slate-50 transition-colors"
                     >
                       <div className="flex items-center justify-between font-mono font-bold text-govNavy-800">
-                        <span>{node.id}</span>
-                        <span className="text-[10px] bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded font-sans font-medium">
-                          {edge?.role || 'Normative'}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStandard(node.id)}
+                          className="hover:text-blue-600 hover:underline text-left"
+                        >
+                          {node.id}
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded font-sans font-medium">
+                            {edge?.role || 'Normative'}
+                          </span>
+                          <Link
+                            href={getStandardDetailUrl(node.id)}
+                            className="text-slate-400 hover:text-blue-600"
+                            title="View dossier"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        </div>
                       </div>
                       <div className="text-slate-600 text-[11px] mt-1 leading-snug truncate" title={node.title}>
                         {node.title}
@@ -318,5 +341,20 @@ export default function GraphPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function GraphPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-64 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 text-sm gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+          <span>Loading dependency graph explorer...</span>
+        </div>
+      }
+    >
+      <GraphContent />
+    </Suspense>
   );
 }

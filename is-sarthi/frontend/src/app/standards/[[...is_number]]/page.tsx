@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Building2,
@@ -21,14 +21,37 @@ import {
   Calendar,
   Layers,
   BookOpen,
+  ExternalLink,
 } from 'lucide-react';
-import { fetchStandardDetail } from '@/lib/api';
+import { fetchStandardDetail, getStandardDetailUrl } from '@/lib/api';
 import { StandardDetail } from '@/lib/types';
 
-export default function StandardDetailPage() {
+function safeDecode(str: string): string {
+  try {
+    return decodeURIComponent(str);
+  } catch {
+    return str;
+  }
+}
+
+function StandardDetailContent() {
   const params = useParams();
-  const rawIsNumber = params?.is_number as string;
-  const isNumber = rawIsNumber ? decodeURIComponent(rawIsNumber) : '';
+  const searchParams = useSearchParams();
+
+  // Robust extraction supporting multi-segment catch-all paths and query fallbacks
+  const paramVal = params?.is_number;
+  let raw = '';
+  if (Array.isArray(paramVal)) {
+    raw = paramVal.join('/');
+  } else if (typeof paramVal === 'string') {
+    raw = paramVal;
+  }
+
+  if (!raw && searchParams) {
+    raw = searchParams.get('is_number') || searchParams.get('id') || searchParams.get('standard') || '';
+  }
+
+  const isNumber = raw ? safeDecode(raw).trim() : '';
 
   const [standard, setStandard] = useState<StandardDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +59,10 @@ export default function StandardDetailPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!isNumber) return;
+    if (!isNumber) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -112,6 +138,33 @@ export default function StandardDetailPage() {
       </span>
     );
   };
+
+  if (!isNumber) {
+    return (
+      <div className="space-y-4">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-blue-700 hover:text-blue-900 font-semibold"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Recommendation Engine</span>
+        </Link>
+        <div className="bg-white border border-slate-200 text-slate-800 p-8 rounded-xl text-center space-y-3">
+          <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
+          <h3 className="text-base font-bold text-govNavy-900">No Standard Specified</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Please search for an Indian Standard or select one from the catalog to view its compliance dossier.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 bg-govNavy-900 hover:bg-govNavy-800 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow transition-colors"
+          >
+            <span>Search Standards</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -238,104 +291,112 @@ export default function StandardDetailPage() {
           </div>
         )}
 
-        {/* Official Metadata Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="bg-slate-50/70 border border-slate-200 p-3 rounded-lg">
-            <span className="text-[11px] text-slate-500 font-medium block">Department / Division</span>
-            <span className="text-xs font-bold text-slate-900 mt-0.5 block truncate" title={standard.department_name || standard.department || standard.division || 'BIS'}>
-              {standard.department_name || standard.department || standard.division || 'BIS'}
-            </span>
+        {/* Metadata Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-2">
+          <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50">
+            <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+              <Layers className="w-4 h-4 text-indigo-600" />
+              <span>Department</span>
+            </div>
+            <div className="font-bold text-govNavy-900 mt-1">
+              {standard.department_name || standard.department || standard.division || 'CED / ETD'}
+            </div>
           </div>
 
-          <div className="bg-slate-50/70 border border-slate-200 p-3 rounded-lg">
-            <span className="text-[11px] text-slate-500 font-medium block">Aspect / Subject</span>
-            <span className="text-xs font-bold text-slate-900 mt-0.5 block">
+          <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50">
+            <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+              <Calendar className="w-4 h-4 text-blue-600" />
+              <span>Published / Status</span>
+            </div>
+            <div className="font-bold text-govNavy-900 mt-1">
+              {standard.published_on || (standard.year ? `Year ${standard.year}` : 'Active BIS')}
+            </div>
+          </div>
+
+          <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50">
+            <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+              <BookOpen className="w-4 h-4 text-teal-600" />
+              <span>Aspect / Type</span>
+            </div>
+            <div className="font-bold text-govNavy-900 mt-1">
               {standard.aspect || 'Product Standard'}
-            </span>
+            </div>
           </div>
 
-          <div className="bg-slate-50/70 border border-slate-200 p-3 rounded-lg">
-            <span className="text-[11px] text-slate-500 font-medium block">Publication Date</span>
-            <span className="text-xs font-bold text-slate-900 mt-0.5 block">
-              {standard.published_on || (standard.year ? `Year ${standard.year}` : 'Recorded')}
-            </span>
-          </div>
-
-          <div className="bg-slate-50/70 border border-slate-200 p-3 rounded-lg">
-            <span className="text-[11px] text-slate-500 font-medium block">Validity / Review Date</span>
-            <span className="text-xs font-bold text-slate-900 mt-0.5 block">
-              {standard.valid_upto || 'Current / Reaffirmed'}
-            </span>
+          <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50">
+            <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+              <ShieldCheck className="w-4 h-4 text-amber-600" />
+              <span>Mandatory ISI / QCO</span>
+            </div>
+            <div className="font-bold mt-1">
+              {standard.certification?.mandatory ? (
+                <span className="text-amber-700">Gazette Enforceable</span>
+              ) : (
+                <span className="text-slate-500">Voluntary / Direct</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TIER 1 ONLY: Rich Detail UI (Scope, Certification, Amendments, Allied References) */}
+      {/* Tier 1 Only Sections */}
       {isEnriched && (
         <div className="space-y-6">
-          {/* Scope Section */}
+          {/* Technical Scope */}
           {standard.scope && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <h4 className="text-base font-bold text-govNavy-900 flex items-center gap-2 mb-3">
-                <BookOpen className="w-5 h-5 text-blue-700" />
-                <span>Technical Scope & Application</span>
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-2">
+              <h4 className="text-sm font-bold text-govNavy-900 flex items-center gap-2 border-b border-slate-100 pb-2">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <span>Technical Scope & Coverage</span>
               </h4>
-              <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed pt-1">
                 {standard.scope}
               </p>
             </div>
           )}
 
-          {/* Mandatory Certification Callout */}
-          {standard.certification && (standard.certification.mandatory || standard.certification.scheme) && (() => {
-            const scheme = (standard.certification.scheme || 'ISI').toUpperCase();
-            const product = standard.certification.product || 'this item';
-            return (
-              <div className="bg-amber-50 border border-amber-300 rounded-xl p-5 shadow-sm text-xs sm:text-sm text-amber-950">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-bold text-base text-amber-900">
-                      MANDATORY CERTIFICATION REGIME: {standard.certification.scheme_label || `${scheme} Certification`}
-                    </h4>
-                    <p className="text-amber-900 mt-1 leading-relaxed">
-                      Supply of {product} requires mandatory compliance with BIS regulations under applicable Quality Control Orders (QCO).
-                      Bidders must submit active certification credentials (CM/L license, R-number, or HUID) with their tender proposals.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Amendments List */}
-          {standard.amendments && standard.amendments.length > 0 && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <h4 className="text-base font-bold text-govNavy-900 flex items-center gap-2 mb-3">
-                <FileText className="w-5 h-5 text-indigo-700" />
-                <span>Gazetted Amendments ({standard.amendments.length})</span>
+          {/* Mandatory Certification Details */}
+          {standard.certification && (standard.certification.mandatory || standard.certification.scheme) && (
+            <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-5 shadow-sm space-y-2">
+              <h4 className="text-sm font-bold text-amber-950 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-700" />
+                <span>Quality Control Order (QCO) & Certification Regime</span>
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
+                Supplies under this standard are governed by{' '}
+                <strong>{standard.certification.scheme_label || standard.certification.scheme || 'BIS Certification'}</strong>.
+                Bidders must submit verified licensing proof and CM/L or R-number documentation during technical qualification.
+              </p>
+            </div>
+          )}
+
+          {/* Gazette Amendments */}
+          {standard.amendments && standard.amendments.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-3">
+              <h4 className="text-sm font-bold text-govNavy-900 flex items-center gap-2 border-b border-slate-100 pb-2">
+                <span>📜 Gazette Amendments & Revisions ({standard.amendments.length})</span>
+              </h4>
+              <div className="flex items-center gap-2 flex-wrap">
                 {standard.amendments.map((amdt) => (
                   <span
                     key={amdt.number}
-                    className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-900 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-mono font-medium"
+                    className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1 rounded text-xs font-mono font-medium"
                   >
-                    <span>Amendment No. {amdt.number}</span>
-                    {amdt.date && <span className="text-slate-500 font-sans">({amdt.date})</span>}
+                    <span>Amendment {amdt.number}</span>
+                    {amdt.date && <span className="text-blue-500">({amdt.date})</span>}
                   </span>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Allied Standards & Normative References */}
+          {/* Allied Standards & Normative Taxonomy */}
           {totalAlliedCount > 0 && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                <h4 className="text-base font-bold text-govNavy-900 flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-govSaffron-500" />
-                  <span>Normative References & Allied Taxonomy ({totalAlliedCount} verified)</span>
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-sm font-bold text-govNavy-900 flex items-center gap-2">
+                  <Network className="w-4 h-4 text-govSaffron-500" />
+                  <span>Allied Standards & Normative Citation Network ({totalAlliedCount} standards)</span>
                 </h4>
                 <Link
                   href={`/graph?standard=${encodeURIComponent(standard.is_number)}`}
@@ -358,7 +419,7 @@ export default function StandardDetailPage() {
                       {items.map((it) => (
                         <li key={it.is_number} className="flex items-baseline justify-between gap-2">
                           <Link
-                            href={`/standards/${encodeURIComponent(it.is_number)}`}
+                            href={getStandardDetailUrl(it.is_number)}
                             className="font-mono font-semibold text-blue-700 hover:underline"
                           >
                             {it.is_number}
@@ -406,5 +467,20 @@ export default function StandardDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function StandardDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[360px] bg-white border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-slate-500 gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-sm font-medium">Resolving standard details across unified BIS corpus...</p>
+        </div>
+      }
+    >
+      <StandardDetailContent />
+    </Suspense>
   );
 }

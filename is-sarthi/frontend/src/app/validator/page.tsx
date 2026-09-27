@@ -14,7 +14,7 @@ import {
   ExternalLink,
   XCircle,
 } from 'lucide-react';
-import { validateSpecification } from '@/lib/api';
+import { validateSpecification, getStandardDetailUrl } from '@/lib/api';
 import { ValidateResponse } from '@/lib/types';
 
 
@@ -212,7 +212,7 @@ export default function ValidatorPage() {
                       >
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <Link
-                            href={`/standards/${encodeURIComponent(m.is_number)}`}
+                            href={getStandardDetailUrl(m.is_number)}
                             className="font-mono font-bold text-govNavy-900 hover:text-blue-700 text-xs inline-flex items-center gap-1"
                           >
                             <span>{m.is_number}</span>
@@ -258,7 +258,7 @@ export default function ValidatorPage() {
                   result.cited.map((c) => (
                     <Link
                       key={c}
-                      href={`/standards/${encodeURIComponent(c)}`}
+                      href={getStandardDetailUrl(c)}
                       className="inline-flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-2 rounded-md text-xs font-mono font-semibold text-slate-800 hover:border-blue-400 transition-colors"
                     >
                       <span>{c}</span>

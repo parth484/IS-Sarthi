@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BarChart3, Search, Layers, ShieldCheck, AlertTriangle, FileCheck, Sparkles, Building2 } from 'lucide-react';
-import { fetchStandards } from '@/lib/api';
+import { fetchStandards, getStandardDetailUrl } from '@/lib/api';
 import { StandardCatalogItem } from '@/lib/types';
 
 
@@ -194,7 +194,7 @@ export default function AnalyticsPage() {
                   <tr key={item.is_number} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-2 px-3 font-mono font-bold text-govNavy-900 whitespace-nowrap">
                       <Link
-                        href={`/standards/${encodeURIComponent(item.is_number)}`}
+                        href={getStandardDetailUrl(item.is_number)}
                         className="hover:text-blue-600 hover:underline inline-flex items-center gap-1"
                       >
                         {item.is_number}

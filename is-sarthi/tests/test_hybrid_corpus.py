@@ -324,3 +324,36 @@ def test_api_hybrid_detail_and_graph():
     # Non-existent standard
     res_404 = client.get("/api/standards/IS%20999999")
     assert res_404.status_code == 404
+
+
+def test_slash_and_complex_identifiers_routing():
+    """Verify standards with slashes, colons, parentheses, and amendments resolve cleanly."""
+    from urllib.parse import quote
+
+    test_standards = [
+        ("IS/ISO 21927 (Part 1):2008", "catalogue"),
+        ("IS 10000 (Part 10):1980", "catalogue"),
+        ("IS 7098-1:1988 (Amdt 1, 1996)", "enriched"),
+        ("IS 8042:1989", "catalogue"),
+        ("IS 694", "enriched"),
+    ]
+
+    for is_num, expected_tier in test_standards:
+        # 1. Test via query parameter
+        res_q = client.get("/api/standards/detail", params={"is_number": is_num})
+        assert res_q.status_code == 200, f"Failed query lookup for {is_num}"
+        d_q = res_q.json()
+        assert d_q["tier"] == expected_tier
+
+        # 2. Test via path parameter
+        enc = quote(is_num, safe="")
+        res_p = client.get(f"/api/standards/{enc}")
+        assert res_p.status_code == 200, f"Failed path lookup for {is_num}"
+        d_p = res_p.json()
+        assert d_p["tier"] == expected_tier
+
+        # 3. Test graph endpoint
+        res_g = client.get("/api/standards/graph", params={"is_number": is_num})
+        assert res_g.status_code == 200
+        assert res_g.json()["target"] is not None
+

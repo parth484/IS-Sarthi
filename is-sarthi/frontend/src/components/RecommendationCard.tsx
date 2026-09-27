@@ -23,7 +23,7 @@ import {
 import { Recommendation } from '@/lib/types';
 
 import VoicePlayer from './VoicePlayer';
-import { submitFeedback } from '@/lib/api';
+import { submitFeedback, getStandardDetailUrl } from '@/lib/api';
 
 interface RecommendationCardProps {
   rec: Recommendation;
@@ -141,7 +141,7 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <Link
-              href={`/standards/${encodeURIComponent(rec.is_number)}`}
+              href={getStandardDetailUrl(rec.is_number)}
               className="text-xl font-bold text-govNavy-900 hover:text-blue-700 tracking-tight transition-colors inline-flex items-center gap-1.5"
             >
               <span>{rec.is_number}</span>
@@ -160,7 +160,7 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
           </div>
           <h4 className="text-base font-semibold text-blue-900 mt-1.5">
             <Link
-              href={`/standards/${encodeURIComponent(rec.is_number)}`}
+              href={getStandardDetailUrl(rec.is_number)}
               className="hover:underline"
             >
               {rec.title}
@@ -402,7 +402,7 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
           </button>
 
           <Link
-            href={`/standards/${encodeURIComponent(rec.is_number)}`}
+            href={getStandardDetailUrl(rec.is_number)}
             className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold px-3 py-1.5 rounded text-xs border border-blue-200 transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5 text-blue-700" />

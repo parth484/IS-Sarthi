@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -23,7 +23,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from scripts.demo_offline import OfflineCorpus
-from pipeline.utils.normalize import extract_all_is_references, normalize_is_number
+from pipeline.utils.normalize import extract_all_is_references, normalize_is_number, split_number_and_year
 from pipeline.classify import ROLE_LABELS
 from pipeline.scrapers.doc_extractor import extract_document_text
 from pipeline.scrapers.pdf_extractor import extract_text_from_pdf
@@ -256,11 +256,14 @@ def get_standards(division: Optional[str] = None, search: Optional[str] = None):
     return {"total": len(summary), "standards": summary}
 
 
-@app.get("/api/standards/{is_number}")
-def get_standard_detail(is_number: str):
+def resolve_standard_detail(is_number: str) -> dict:
     canonical = normalize_is_number(is_number) or is_number
     # 1. Tier 1 seed records first
-    record = corpus.by_number.get(canonical) or corpus.by_number.get(is_number)
+    record = corpus.by_number.get(is_number) or corpus.by_number.get(canonical)
+    if not record:
+        split_num, _ = split_number_and_year(is_number)
+        if split_num:
+            record = corpus.by_number.get(split_num)
     if record:
         enriched = dict(record)
         enriched["tender_clause"] = generate_tender_clause(record)
@@ -273,6 +276,10 @@ def get_standard_detail(is_number: str):
     hc = get_hybrid_corpus()
     record = hc.adapter.get_by_number(is_number) or hc.adapter.get_by_number(canonical)
     if not record:
+        split_num, _ = split_number_and_year(is_number)
+        if split_num:
+            record = hc.adapter.get_by_number(split_num)
+    if not record:
         raise HTTPException(status_code=404, detail=f"Standard '{is_number}' not found.")
 
     enriched = dict(record)
@@ -281,14 +288,21 @@ def get_standard_detail(is_number: str):
     return enriched
 
 
-@app.get("/api/standards/{is_number}/graph")
-def get_standard_graph(is_number: str, depth: int = 1):
+def resolve_standard_graph(is_number: str, depth: int = 1) -> dict:
     canonical = normalize_is_number(is_number) or is_number
-    record = corpus.by_number.get(canonical) or corpus.by_number.get(is_number)
+    record = corpus.by_number.get(is_number) or corpus.by_number.get(canonical)
+    if not record:
+        split_num, _ = split_number_and_year(is_number)
+        if split_num:
+            record = corpus.by_number.get(split_num)
     if not record:
         # Check Tier 2
         hc = get_hybrid_corpus()
-        record = hc.adapter.get_by_number(canonical) or hc.adapter.get_by_number(is_number)
+        record = hc.adapter.get_by_number(is_number) or hc.adapter.get_by_number(canonical)
+        if not record:
+            split_num, _ = split_number_and_year(is_number)
+            if split_num:
+                record = hc.adapter.get_by_number(split_num)
         if not record:
             raise HTTPException(status_code=404, detail=f"Standard '{is_number}' not found.")
 
@@ -350,6 +364,26 @@ def get_standard_graph(is_number: str, depth: int = 1):
                 frontier.append((child, hop + 1))
 
     return {"target": canonical, "nodes": nodes, "edges": edges}
+
+
+@app.get("/api/standards/detail")
+def get_standard_detail_query(is_number: str = Query(...)):
+    return resolve_standard_detail(is_number)
+
+
+@app.get("/api/standards/graph")
+def get_standard_graph_query(is_number: str = Query(...), depth: int = 1):
+    return resolve_standard_graph(is_number, depth=depth)
+
+
+@app.get("/api/standards/{is_number:path}/graph")
+def get_standard_graph(is_number: str, depth: int = 1):
+    return resolve_standard_graph(is_number, depth=depth)
+
+
+@app.get("/api/standards/{is_number:path}")
+def get_standard_detail(is_number: str):
+    return resolve_standard_detail(is_number)
 
 
 @app.post("/api/recommend")

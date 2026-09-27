@@ -20,12 +20,35 @@ export async function fetchHealth(): Promise<{ status: string; standards_indexed
   return res.json();
 }
 
+export function getStandardDetailUrl(is_number: string): string {
+  if (!is_number) return '/standards';
+  return `/standards/${encodeURIComponent(is_number.trim())}`;
+}
+
 export async function fetchStandardDetail(is_number: string): Promise<StandardDetail> {
-  const encoded = encodeURIComponent(is_number);
-  const res = await fetch(`${API_BASE}/standards/${encoded}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: `Standard '${is_number}' not found` }));
-    throw new Error(err.detail || `Standard '${is_number}' not found`);
+  const trimmed = is_number.trim();
+  const encoded = encodeURIComponent(trimmed);
+
+  // 1. Try query parameter endpoint (completely slash-safe across all HTTP proxies)
+  let res: Response | null = null;
+  try {
+    res = await fetch(`${API_BASE}/standards/detail?is_number=${encoded}`);
+  } catch {
+    res = null;
+  }
+
+  // 2. Fallback to path endpoint
+  if (!res || !res.ok) {
+    try {
+      res = await fetch(`${API_BASE}/standards/${encoded}`);
+    } catch {
+      res = null;
+    }
+  }
+
+  if (!res || !res.ok) {
+    const err = res ? await res.json().catch(() => ({ detail: `Standard '${trimmed}' not found` })) : { detail: `Standard '${trimmed}' not found` };
+    throw new Error(err.detail || `Standard '${trimmed}' not found`);
   }
   return res.json();
 }
@@ -72,9 +95,27 @@ export async function fetchStandards(division?: string, search?: string): Promis
 }
 
 export async function fetchStandardGraph(is_number: string, depth: number = 1): Promise<GraphResponse> {
-  const encoded = encodeURIComponent(is_number);
-  const res = await fetch(`${API_BASE}/standards/${encoded}/graph?depth=${depth}`);
-  if (!res.ok) throw new Error(`Failed to load dependency graph for ${is_number}`);
+  const trimmed = is_number.trim();
+  const encoded = encodeURIComponent(trimmed);
+
+  // 1. Try query parameter endpoint
+  let res: Response | null = null;
+  try {
+    res = await fetch(`${API_BASE}/standards/graph?is_number=${encoded}&depth=${depth}`);
+  } catch {
+    res = null;
+  }
+
+  // 2. Fallback to path endpoint
+  if (!res || !res.ok) {
+    try {
+      res = await fetch(`${API_BASE}/standards/${encoded}/graph?depth=${depth}`);
+    } catch {
+      res = null;
+    }
+  }
+
+  if (!res || !res.ok) throw new Error(`Failed to load dependency graph for ${trimmed}`);
   return res.json();
 }
 
