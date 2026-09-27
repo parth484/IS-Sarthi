@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "department_currently_processing": null,
+  "department_code": "WRD",
+  "current_offset": 0,
+  "page_size": 100,
+  "total_records_reported": 225,
+  "records_processed_in_department": 225,
+  "completed_departments": [
+    "AYD",
+    "CHD",
+    "CED",
+    "LITD",
+    "ETD",
+    "EED",
+    "FAD",
+    "MSD",
+    "MED",
+    "MHD",
+    "MTD",
+    "PCD",
+    "PGD",
+    "SSD",
+    "TXD",
+    "TED",
+    "WRD"
+  ],
+  "failed_departments": {},
+  "started_at": "2026-09-27T07:54:54.407851+00:00",
+  "last_updated_at": "2026-09-27T08:00:14.730408+00:00",
+  "last_successful_request": "2026-09-27T08:00:13.951598+00:00",
+  "stats": {
+    "raw_records_collected": 13305,
+    "new_unique_standards": 12857,
+    "duplicates_merged": 448
+  },
+  "encrypted_department_id": "eyJpdiI6Ilh6UENJa0lvU2s4Q3lob1FVS3R1YUE9PSIsInZhbHVlIjoiMm5HZVRvekpQOHdVSkErNVMzdUhndz09IiwibWFjIjoiN2MxYmNhYTNjY2ZkZTI1ZTAxNTVkMmEzOTUzMmI2N2VkNTY0ODUzNWQ3MjgwZTBjOWIzMDllMzg4YTI5Mjk1YSIsInRhZyI6IiJ9"
+}
