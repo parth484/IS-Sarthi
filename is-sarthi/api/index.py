@@ -63,8 +63,19 @@ def _load_corpus() -> OfflineCorpus:
             return OfflineCorpus(records)
     raise FileNotFoundError("Could not locate standards.json in data/seed/")
 
+from pipeline.db.unified_corpus import HybridCorpus
+
 corpus = _load_corpus()
 procurement_service = ProcurementService(corpus)
+
+_hybrid_corpus: Optional[HybridCorpus] = None
+
+def get_hybrid_corpus() -> HybridCorpus:
+    global _hybrid_corpus
+    if _hybrid_corpus is None:
+        logger.info("Initializing HybridCorpus from seed and BIS catalogue...")
+        _hybrid_corpus = HybridCorpus.from_files()
+    return _hybrid_corpus
 
 
 # -----------------------------------------------------------------------------
@@ -248,23 +259,54 @@ def get_standards(division: Optional[str] = None, search: Optional[str] = None):
 @app.get("/api/standards/{is_number}")
 def get_standard_detail(is_number: str):
     canonical = normalize_is_number(is_number) or is_number
-    record = corpus.by_number.get(canonical)
+    # 1. Tier 1 seed records first
+    record = corpus.by_number.get(canonical) or corpus.by_number.get(is_number)
+    if record:
+        enriched = dict(record)
+        enriched["tender_clause"] = generate_tender_clause(record)
+        enriched["allied_by_role"] = corpus.allied(canonical, query=record.get("title", ""))
+        enriched["tier"] = "enriched"
+        enriched["is_enriched"] = True
+        return enriched
+
+    # 2. Check Unified Corpus (Tier 2 Catalogue)
+    hc = get_hybrid_corpus()
+    record = hc.adapter.get_by_number(is_number) or hc.adapter.get_by_number(canonical)
     if not record:
         raise HTTPException(status_code=404, detail=f"Standard '{is_number}' not found.")
-    
-    # Enrich with tender clause & graph references
+
     enriched = dict(record)
     enriched["tender_clause"] = generate_tender_clause(record)
-    enriched["allied_by_role"] = corpus.allied(canonical, query=record.get("title", ""))
+    enriched["allied_by_role"] = {}
     return enriched
 
 
 @app.get("/api/standards/{is_number}/graph")
 def get_standard_graph(is_number: str, depth: int = 1):
     canonical = normalize_is_number(is_number) or is_number
-    record = corpus.by_number.get(canonical)
+    record = corpus.by_number.get(canonical) or corpus.by_number.get(is_number)
     if not record:
-        raise HTTPException(status_code=404, detail=f"Standard '{is_number}' not found.")
+        # Check Tier 2
+        hc = get_hybrid_corpus()
+        record = hc.adapter.get_by_number(canonical) or hc.adapter.get_by_number(is_number)
+        if not record:
+            raise HTTPException(status_code=404, detail=f"Standard '{is_number}' not found.")
+
+        target_num = record.get("is_number", canonical)
+        return {
+            "target": target_num,
+            "nodes": [
+                {
+                    "id": target_num,
+                    "label": target_num,
+                    "title": record.get("title", ""),
+                    "status": record.get("status", "current"),
+                    "division": record.get("division") or record.get("department") or "BIS",
+                    "is_target": True,
+                }
+            ],
+            "edges": [],
+        }
 
     nodes = []
     edges = []
@@ -315,16 +357,21 @@ def recommend_standards(req: RecommendRequest):
     # Multilingual query normalization (Hindi, Marathi, Telugu, Tamil, English)
     normalized_q, detected_lang, orig_q = normalize_query_for_retrieval(req.query.strip())
 
-    result = corpus.recommend(normalized_q, top_k=req.top_k)
+    hc = get_hybrid_corpus()
+    result = hc.recommend(normalized_q, top_k=req.top_k)
     recs = result.get("recommendations", [])
     
     if req.division and req.division != "All Divisions":
-        recs = [r for r in recs if corpus.by_number.get(r["is_number"], {}).get("division") == req.division]
+        recs = [
+            r for r in recs
+            if r.get("department") == req.division or r.get("division") == req.division
+        ]
         result["recommendations"] = recs
 
     # Add pre-computed tender clauses to each recommendation
     for r in recs:
-        r["tender_clause"] = generate_tender_clause(r)
+        if not r.get("tender_clause"):
+            r["tender_clause"] = generate_tender_clause(r)
 
     # Preserve original user query for UI display while exposing normalized retrieval representation
     result["query"] = orig_q
@@ -336,7 +383,9 @@ def recommend_standards(req: RecommendRequest):
 
 @app.post("/api/validate")
 def validate_specification(req: ValidateRequest):
-    return corpus.validate(req.spec_text.strip())
+    hc = get_hybrid_corpus()
+    return hc.validate(req.spec_text.strip())
+
 
 
 @app.post("/api/speech/transcribe")

@@ -1,0 +1,356 @@
+[
+  {
+    "query": "LED street light",
+    "tier1_top": {
+      "is_number": "IS 16102-1",
+      "title": "Self Ballasted LED Lamps for General Lighting Services Part 1 Safety Requirements",
+      "confidence": 0.412,
+      "state": "ok"
+    },
+    "tier2_top": {
+      "is_number": "IS 16107 (Part 2/Sec 2):2017",
+      "title": "Luminaries Performance Part 2 Particular Requirements Section 2 LED Street Lighting Luminarie",
+      "confidence": 0.772,
+      "state": "ok"
+    },
+    "hybrid_top": {
+      "is_number": "IS 16107 (Part 2/Sec 2):2017",
+      "title": "Luminaries Performance Part 2 Particular Requirements Section 2 LED Street Lighting Luminarie",
+      "confidence": 0.765,
+      "tier": "catalogue",
+      "state": "ok"
+    },
+    "hybrid_all_top5": [
+      {
+        "is_number": "IS 16107 (Part 2/Sec 2):2017",
+        "title": "Luminaries Performance Part 2 Particular Requirements Sectio",
+        "tier": "catalogue",
+        "confidence": 0.765
+      },
+      {
+        "is_number": "IS 13383 (Part 2):1992",
+        "title": "Photometry of luminaires - Method of measurement: Part 2 lum",
+        "tier": "catalogue",
+        "confidence": 0.634
+      },
+      {
+        "is_number": "IS 16101:2012",
+        "title": "General lighting - Leds and led modules - Terms and definiti",
+        "tier": "catalogue",
+        "confidence": 0.491
+      },
+      {
+        "is_number": "IS 15111-1",
+        "title": "Solar Photovoltaic Systems Part 1 Standalone Photovoltaic Li",
+        "tier": "enriched",
+        "confidence": 0.526
+      },
+      {
+        "is_number": "IS 16661:2019",
+        "title": "Application of IS 16108/IEC 62471 for the assessment of blue",
+        "tier": "catalogue",
+        "confidence": 0.418
+      }
+    ],
+    "latency_ms": {
+      "tier1": 17.9,
+      "tier2": 20.8,
+      "hybrid": 34.3
+    }
+  },
+  {
+    "query": "Portland cement",
+    "tier1_top": {
+      "is_number": "IS 269",
+      "title": "Ordinary Portland Cement Specification",
+      "confidence": 0.765,
+      "state": "ok"
+    },
+    "tier2_top": {
+      "is_number": "IS 8042:1989",
+      "title": "White Portland Cement -",
+      "confidence": 0.824,
+      "state": "ok"
+    },
+    "hybrid_top": {
+      "is_number": "IS 8042:1989",
+      "title": "White Portland Cement -",
+      "confidence": 0.825,
+      "tier": "catalogue",
+      "state": "ok"
+    },
+    "hybrid_all_top5": [
+      {
+        "is_number": "IS 8042:1989",
+        "title": "White Portland Cement -",
+        "tier": "catalogue",
+        "confidence": 0.825
+      },
+      {
+        "is_number": "IS 8042:2015",
+        "title": "White Portland Cement - Specification (Third Revision)",
+        "tier": "catalogue",
+        "confidence": 0.8
+      },
+      {
+        "is_number": "IS 12600:1989",
+        "title": "Portland Cement, Low Heat - specification",
+        "tier": "catalogue",
+        "confidence": 0.8
+      },
+      {
+        "is_number": "IS 16353:2015",
+        "title": "Portland Cement Clinker - Specification",
+        "tier": "catalogue",
+        "confidence": 0.8
+      },
+      {
+        "is_number": "IS 8043:1991",
+        "title": "Hydrophobic Portland Cement - Specification (Second Revision",
+        "tier": "catalogue",
+        "confidence": 0.8
+      }
+    ],
+    "latency_ms": {
+      "tier1": 32.2,
+      "tier2": 25.4,
+      "hybrid": 29.8
+    }
+  },
+  {
+    "query": "PVC electrical cable",
+    "tier1_top": {
+      "is_number": "IS 5216-1",
+      "title": "Guide for Safety Procedures and Practices in Electrical Work Part 1 General",
+      "confidence": 0.52,
+      "state": "ok"
+    },
+    "tier2_top": {
+      "is_number": "IS/IEC 61537:2006",
+      "title": "Cable Management - Cable Tray System and Cable Ladder System",
+      "confidence": 0.636,
+      "state": "ok"
+    },
+    "hybrid_top": {
+      "is_number": "IS 16783:2018",
+      "title": "Cable Cleats for Electrical Installations",
+      "confidence": 0.687,
+      "tier": "catalogue",
+      "state": "ok"
+    },
+    "hybrid_all_top5": [
+      {
+        "is_number": "IS 16783:2018",
+        "title": "Cable Cleats for Electrical Installations",
+        "tier": "catalogue",
+        "confidence": 0.687
+      },
+      {
+        "is_number": "IS/IEC 61537:2006",
+        "title": "Cable Management - Cable Tray System and Cable Ladder System",
+        "tier": "catalogue",
+        "confidence": 0.63
+      },
+      {
+        "is_number": "IS/IEC 60189 (Part 1):2018",
+        "title": "Low-Frequency Cables and Wires with PVC Insulation and PVC S",
+        "tier": "catalogue",
+        "confidence": 0.679
+      },
+      {
+        "is_number": "IS 17046:2018",
+        "title": "Fibre Optic Cable for Cable TV Application",
+        "tier": "catalogue",
+        "confidence": 0.593
+      },
+      {
+        "is_number": "IS 14547:1998",
+        "title": "Aircraft - Electrical cables and cable harnesses - Terminolo",
+        "tier": "catalogue",
+        "confidence": 0.613
+      }
+    ],
+    "latency_ms": {
+      "tier1": 5.1,
+      "tier2": 27.4,
+      "hybrid": 31.3
+    }
+  },
+  {
+    "query": "safety helmet",
+    "tier1_top": {
+      "is_number": "IS 15885-1",
+      "title": "Safety of Lamp Control Gear Part 1 General and Safety Requirements",
+      "confidence": 0.566,
+      "state": "ok"
+    },
+    "tier2_top": {
+      "is_number": "IS 9562:1980",
+      "title": "Specification for non - Metal helmet for police force",
+      "confidence": 0.862,
+      "state": "ok"
+    },
+    "hybrid_top": {
+      "is_number": "IS 9562:1980",
+      "title": "Specification for non - Metal helmet for police force",
+      "confidence": 0.862,
+      "tier": "catalogue",
+      "state": "ok"
+    },
+    "hybrid_all_top5": [
+      {
+        "is_number": "IS 9562:1980",
+        "title": "Specification for non - Metal helmet for police force",
+        "tier": "catalogue",
+        "confidence": 0.862
+      },
+      {
+        "is_number": "IS 18808:2025",
+        "title": "Protective Helmet for Users of Bicycles, Skateboards and Rol",
+        "tier": "catalogue",
+        "confidence": 0.609
+      },
+      {
+        "is_number": "IS 19089:2025",
+        "title": "RESPIRATORY PROTECTIVE DEVICES- POWERED FILTERING DEVICES IN",
+        "tier": "catalogue",
+        "confidence": 0.62
+      },
+      {
+        "is_number": "IS 17277 (Part 1):2019",
+        "title": "Machine Tools Safety \u2014 Presses Part 1 General Safety Require",
+        "tier": "catalogue",
+        "confidence": 0.526
+      },
+      {
+        "is_number": "IS 19118:2025",
+        "title": "Safety of Machinery - Guidelines on Functional Safety of Saf",
+        "tier": "catalogue",
+        "confidence": 0.501
+      }
+    ],
+    "latency_ms": {
+      "tier1": 9.1,
+      "tier2": 20.1,
+      "hybrid": 20.5
+    }
+  },
+  {
+    "query": "transformer",
+    "tier1_top": {
+      "is_number": "None",
+      "title": "No match",
+      "confidence": 0.0,
+      "state": "low_confidence"
+    },
+    "tier2_top": {
+      "is_number": "IS 16444 (Part 2):2017",
+      "title": "AC static transformer operated watthour and var - Hour smart meters, class 0.2 S, 0.5 S and 1.0 S: Part 2 specification transformer operated smart meters",
+      "confidence": 0.807,
+      "state": "ok"
+    },
+    "hybrid_top": {
+      "is_number": "IS 16444 (Part 2):2017",
+      "title": "AC static transformer operated watthour and var - Hour smart meters, class 0.2 S, 0.5 S and 1.0 S: Part 2 specification transformer operated smart meters",
+      "confidence": 0.853,
+      "tier": "catalogue",
+      "state": "ok"
+    },
+    "hybrid_all_top5": [
+      {
+        "is_number": "IS 16444 (Part 2):2017",
+        "title": "AC static transformer operated watthour and var - Hour smart",
+        "tier": "catalogue",
+        "confidence": 0.853
+      },
+      {
+        "is_number": "IS 8036:1976",
+        "title": "Specification for mild steel transformer cooling tubes",
+        "tier": "catalogue",
+        "confidence": 0.8
+      },
+      {
+        "is_number": "IS 16841:2018",
+        "title": "Guide for the maintenance of silicone transformer liquids",
+        "tier": "catalogue",
+        "confidence": 0.789
+      },
+      {
+        "is_number": "IS 2026 (Part 11):2021",
+        "title": "Power Transformers Part 11 Dry-Type Transformers",
+        "tier": "catalogue",
+        "confidence": 0.65
+      },
+      {
+        "is_number": "IS 2026 (Part 15):2018",
+        "title": "Power transformers: Part 15 gas - Filled power transformers",
+        "tier": "catalogue",
+        "confidence": 0.65
+      }
+    ],
+    "latency_ms": {
+      "tier1": 2.2,
+      "tier2": 23.2,
+      "hybrid": 31.4
+    }
+  },
+  {
+    "query": "centrifugal water pump",
+    "tier1_top": {
+      "is_number": "None",
+      "title": "No match",
+      "confidence": 0.0,
+      "state": "low_confidence"
+    },
+    "tier2_top": {
+      "is_number": "IS 18659 (Part 3):2024",
+      "title": "Determination of Particle Size Distribution by Centrifugal Liquid Sedimentation Methods Part 3 Centrifugal X-Ray Method",
+      "confidence": 0.81,
+      "state": "ok"
+    },
+    "hybrid_top": {
+      "is_number": "IS 18659 (Part 3):2024",
+      "title": "Determination of Particle Size Distribution by Centrifugal Liquid Sedimentation Methods Part 3 Centrifugal X-Ray Method",
+      "confidence": 0.81,
+      "tier": "catalogue",
+      "state": "ok"
+    },
+    "hybrid_all_top5": [
+      {
+        "is_number": "IS 18659 (Part 3):2024",
+        "title": "Determination of Particle Size Distribution by Centrifugal L",
+        "tier": "catalogue",
+        "confidence": 0.81
+      },
+      {
+        "is_number": "IS/ISO 5199:2002",
+        "title": "Technical specifications for centrifugal pumps - Class II",
+        "tier": "catalogue",
+        "confidence": 0.8
+      },
+      {
+        "is_number": "IS 9837:1981",
+        "title": "Code for testing of marine centrifugal oil purifiers",
+        "tier": "catalogue",
+        "confidence": 0.8
+      },
+      {
+        "is_number": "IS 19605 (Part 3):2026",
+        "title": "Petroleum, petrochemical and natural gas industries \u2014 Axial ",
+        "tier": "catalogue",
+        "confidence": 0.764
+      },
+      {
+        "is_number": "IS 19040:2023",
+        "title": "Millet Dehusker \u2014 Centrifugal Type \u2014 Specification and Test ",
+        "tier": "catalogue",
+        "confidence": 0.773
+      }
+    ],
+    "latency_ms": {
+      "tier1": 2.1,
+      "tier2": 27.0,
+      "hybrid": 25.4
+    }
+  }
+]
