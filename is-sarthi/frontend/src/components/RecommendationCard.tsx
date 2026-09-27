@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -14,8 +15,13 @@ import {
   Check,
   ThumbsUp,
   ThumbsDown,
+  Building2,
+  Sparkles,
+  ExternalLink,
+  Info,
 } from 'lucide-react';
 import { Recommendation } from '@/lib/types';
+
 import VoicePlayer from './VoicePlayer';
 import { submitFeedback } from '@/lib/api';
 
@@ -80,6 +86,32 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
     }
   };
 
+  const isEnriched = rec.tier === 'enriched' || rec.is_enriched === true;
+
+  // Tier Badge Metadata
+  const getTierBadge = () => {
+    if (isEnriched) {
+      return (
+        <span
+          title="Seed Enriched Dossier: includes scope, normative references, certification, amendments, and allied relationships"
+          className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-0.5 rounded text-xs font-semibold"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+          <span>Seed Enriched Dossier</span>
+        </span>
+      );
+    }
+    return (
+      <span
+        title="Official BIS Catalogue: national published standard with official catalogue metadata"
+        className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-800 border border-slate-300 px-2.5 py-0.5 rounded text-xs font-semibold"
+      >
+        <Building2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+        <span>Official BIS Catalogue</span>
+      </span>
+    );
+  };
+
   const getRoleIcon = (r: string) => {
     switch (r.toLowerCase()) {
       case 'test method':
@@ -106,12 +138,19 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all">
       {/* Top Row: IS Number, Version & Confidence Badge */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-3">
-          <div>
+        <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-xl font-bold text-govNavy-900 tracking-tight">{rec.is_number}</h3>
+            <Link
+              href={`/standards/${encodeURIComponent(rec.is_number)}`}
+              className="text-xl font-bold text-govNavy-900 hover:text-blue-700 tracking-tight transition-colors inline-flex items-center gap-1.5"
+            >
+              <span>{rec.is_number}</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+            </Link>
             <span className="text-xs bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-mono font-medium">
               Edition: {rec.latest_version}
             </span>
+            {getTierBadge()}
             {getStatusBadge()}
             {rec.superseded_by && (
               <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded text-xs font-bold">
@@ -119,7 +158,45 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
               </span>
             )}
           </div>
-          <h4 className="text-base font-semibold text-blue-900 mt-1.5">{rec.title}</h4>
+          <h4 className="text-base font-semibold text-blue-900 mt-1.5">
+            <Link
+              href={`/standards/${encodeURIComponent(rec.is_number)}`}
+              className="hover:underline"
+            >
+              {rec.title}
+            </Link>
+          </h4>
+          {rec.title_hindi && (
+            <div className="text-xs text-slate-500 font-medium mt-0.5">
+              {rec.title_hindi}
+            </div>
+          )}
+
+          {/* Catalogue Metadata Chips for Tier 2 */}
+          {!isEnriched && (
+            <div className="mt-2 flex items-center gap-2 flex-wrap text-xs text-slate-600">
+              {(rec.department_name || rec.department) && (
+                <span className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
+                  <strong>Department:</strong> {rec.department_name || rec.department}
+                </span>
+              )}
+              {rec.aspect && (
+                <span className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
+                  <strong>Aspect:</strong> {rec.aspect}
+                </span>
+              )}
+              {rec.published_on && (
+                <span className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
+                  <strong>Published:</strong> {rec.published_on}
+                </span>
+              )}
+              {rec.valid_upto && (
+                <span className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
+                  <strong>Valid Upto:</strong> {rec.valid_upto}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Amendments UI (surfaced only when verified amendments exist) */}
           {rec.amendments && rec.amendments.length > 0 && (
@@ -138,6 +215,7 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
             </div>
           )}
         </div>
+
 
         <div className="text-left sm:text-right shrink-0">
           <div className="inline-flex items-center gap-1.5 font-bold text-sm">
@@ -177,15 +255,31 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
         </div>
       )}
 
-      {/* Scope Justification Callout */}
+      {/* Scope / Catalogue Justification Callout */}
       {rec.justification && (
         <div className="mt-3 bg-slate-50 border-l-4 border-blue-600 p-3 rounded-r text-xs sm:text-sm text-slate-800">
           <p className="font-semibold text-blue-900 flex items-center gap-1.5">
-            <span>💡 Scope Justification:</span>
+            <span>💡 {isEnriched ? 'Scope Justification:' : 'Catalogue Match Evidence:'}</span>
           </p>
           <p className="mt-0.5 text-slate-700 leading-relaxed">{rec.justification}</p>
         </div>
       )}
+
+      {/* Tier 2 Catalogue Notice */}
+      {!isEnriched && (
+        <div className="mt-3 bg-slate-50/80 border border-slate-200 p-3 rounded-lg text-xs text-slate-700 flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-slate-800">
+              Catalogue metadata available. Detailed compliance dossier is not currently available for this standard.
+            </p>
+            <p className="text-slate-500 mt-0.5 text-[11px] leading-relaxed">
+              Standard conformity verification and legally enforceable NIT tender clause are pre-formulated below based on official BIS records.
+            </p>
+          </div>
+        </div>
+      )}
+
 
       {/* Granular Mandatory Certification Callout (ISI / CRS / Hallmarking) */}
       {rec.certification && (rec.certification.mandatory || rec.certification.scheme) && (() => {
@@ -297,7 +391,7 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
 
       {/* Tender Clause Generator & Actions */}
       <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setShowClause(!showClause)}
@@ -306,7 +400,16 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
             <FileText className="w-3.5 h-3.5 text-blue-700" />
             {showClause ? 'Hide Tender Clause' : '📝 View Formatted Tender Clause'}
           </button>
+
+          <Link
+            href={`/standards/${encodeURIComponent(rec.is_number)}`}
+            className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold px-3 py-1.5 rounded text-xs border border-blue-200 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-blue-700" />
+            <span>{isEnriched ? 'View Enriched Dossier' : 'View Catalogue Metadata'}</span>
+          </Link>
         </div>
+
 
         {/* Feedback Buttons */}
         <div className="flex items-center gap-2">

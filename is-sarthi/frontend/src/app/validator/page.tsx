@@ -1,9 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldAlert, AlertTriangle, ShieldCheck, CheckCircle2, Lightbulb, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import {
+  ShieldAlert,
+  AlertTriangle,
+  ShieldCheck,
+  CheckCircle2,
+  Lightbulb,
+  Loader2,
+  Building2,
+  Sparkles,
+  ExternalLink,
+  XCircle,
+} from 'lucide-react';
 import { validateSpecification } from '@/lib/api';
 import { ValidateResponse } from '@/lib/types';
+
 
 const SAMPLE_1 = `Notice Inviting Tender (NIT) for Substation Foundation Works:
 1. All cement used in RCC structural works shall strictly conform to IS 8112:1989 for 43 grade ordinary portland cement.
@@ -185,20 +198,78 @@ export default function ValidatorPage() {
             <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5">
               <h4 className="text-base font-bold text-slate-800 flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <span>Validated Standards Mentioned</span>
+                <span>Validated Standards Mentioned ({result.cited.length})</span>
               </h4>
-              <div className="flex flex-wrap gap-2">
-                {result.cited.map((c) => (
-                  <span
-                    key={c}
-                    className="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-3 py-1 rounded-md text-xs font-mono font-semibold text-slate-800"
-                  >
-                    <span>{c}</span>
-                  </span>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {result.matched_standards && result.matched_standards.length > 0 ? (
+                  result.matched_standards.map((m) => {
+                    const isEnriched = m.tier === 'enriched';
+                    const isWithdrawn = m.status === 'withdrawn';
+                    return (
+                      <div
+                        key={m.is_number}
+                        className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex flex-col justify-between gap-1.5"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <Link
+                            href={`/standards/${encodeURIComponent(m.is_number)}`}
+                            className="font-mono font-bold text-govNavy-900 hover:text-blue-700 text-xs inline-flex items-center gap-1"
+                          >
+                            <span>{m.is_number}</span>
+                            <ExternalLink className="w-3 h-3 opacity-50" />
+                          </Link>
+
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isEnriched ? (
+                              <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                <Sparkles className="w-3 h-3 text-blue-600" />
+                                <span>Seed Enriched Dossier</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 border border-slate-300 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                <Building2 className="w-3 h-3 text-slate-600" />
+                                <span>Official BIS Catalogue</span>
+                              </span>
+                            )}
+
+                            {isWithdrawn && (
+                              <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-300 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                <XCircle className="w-3 h-3 text-rose-600" />
+                                <span>Withdrawn</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {m.title && (
+                          <div className="text-slate-600 text-xs truncate" title={m.title}>
+                            {m.title}
+                          </div>
+                        )}
+                        {m.department && (
+                          <div className="text-[11px] text-slate-400">
+                            Dept: {m.department}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  result.cited.map((c) => (
+                    <Link
+                      key={c}
+                      href={`/standards/${encodeURIComponent(c)}`}
+                      className="inline-flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-2 rounded-md text-xs font-mono font-semibold text-slate-800 hover:border-blue-400 transition-colors"
+                    >
+                      <span>{c}</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </Link>
+                  ))
+                )}
               </div>
             </div>
           )}
+
 
           {/* Suggested Additions */}
           {result.suggested_additions.length > 0 && (

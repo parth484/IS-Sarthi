@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Search, Layers, ShieldCheck, AlertTriangle, FileCheck } from 'lucide-react';
+import Link from 'next/link';
+import { BarChart3, Search, Layers, ShieldCheck, AlertTriangle, FileCheck, Sparkles, Building2 } from 'lucide-react';
 import { fetchStandards } from '@/lib/api';
 import { StandardCatalogItem } from '@/lib/types';
+
 
 export default function AnalyticsPage() {
   const [standards, setStandards] = useState<StandardCatalogItem[]>([]);
@@ -180,6 +182,7 @@ export default function AnalyticsPage() {
               <thead className="bg-slate-50 sticky top-0 font-semibold text-slate-700">
                 <tr>
                   <th className="py-2.5 px-3">IS Number</th>
+                  <th className="py-2.5 px-3">Tier</th>
                   <th className="py-2.5 px-3">Title</th>
                   <th className="py-2.5 px-2">Div</th>
                   <th className="py-2.5 px-2">Status</th>
@@ -190,7 +193,25 @@ export default function AnalyticsPage() {
                 {filtered.map((item) => (
                   <tr key={item.is_number} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-2 px-3 font-mono font-bold text-govNavy-900 whitespace-nowrap">
-                      {item.is_number}
+                      <Link
+                        href={`/standards/${encodeURIComponent(item.is_number)}`}
+                        className="hover:text-blue-600 hover:underline inline-flex items-center gap-1"
+                      >
+                        {item.is_number}
+                      </Link>
+                    </td>
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      {item.tier === 'catalogue' ? (
+                        <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded text-[10px] font-semibold">
+                          <Building2 className="w-3 h-3 text-slate-500" />
+                          <span>Official BIS Catalogue</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-semibold">
+                          <Sparkles className="w-3 h-3 text-blue-600" />
+                          <span>Seed Enriched Dossier</span>
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 px-3 max-w-xs truncate" title={item.title}>
                       {item.title}

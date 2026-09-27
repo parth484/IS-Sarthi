@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Network, Loader2, Info } from 'lucide-react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Network, Loader2, Info, Building2, Sparkles } from 'lucide-react';
 import { fetchStandards, fetchStandardGraph } from '@/lib/api';
 import { GraphResponse } from '@/lib/types';
+
+
 
 export default function GraphPage() {
   const [standards, setStandards] = useState<string[]>([]);
@@ -88,7 +91,18 @@ export default function GraphPage() {
               {targetNode.id}: {targetNode.title}
             </h3>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {otherNodes.length > 0 ? (
+              <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded text-xs font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>Seed Enriched Dossier</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 border border-slate-300 px-2.5 py-1 rounded text-xs font-semibold">
+                <Building2 className="w-3.5 h-3.5 text-slate-600" />
+                <span>Official BIS Catalogue</span>
+              </span>
+            )}
             <span className="bg-white border border-blue-200 text-blue-900 px-2.5 py-1 rounded text-xs font-semibold">
               Division: {targetNode.division}
             </span>
@@ -102,6 +116,7 @@ export default function GraphPage() {
               Status: {targetNode.status}
             </span>
           </div>
+
         </div>
       )}
 
@@ -261,10 +276,15 @@ export default function GraphPage() {
             </h4>
 
             {otherNodes.length === 0 ? (
-              <div className="p-4 text-xs text-slate-500 text-center my-auto">
-                No normative references recorded in the seed catalog for this standard.
+              <div className="p-6 text-xs text-slate-500 text-center my-auto space-y-2">
+                <Building2 className="w-8 h-8 text-slate-400 mx-auto" />
+                <p className="font-semibold text-slate-700">Official BIS Catalogue Standard</p>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  Normative citation networks are mapped for Tier 1 seed standards. Standard conformity specifications remain valid for this standard.
+                </p>
               </div>
             ) : (
+
               <div className="space-y-2.5 overflow-y-auto max-h-[380px] pr-1 text-xs">
                 {otherNodes.map((node) => {
                   const edge = graphData.edges.find((e) => e.target === node.id);

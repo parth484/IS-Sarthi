@@ -46,6 +46,16 @@ export interface Recommendation {
   amendments?: Amendment[];
   allied?: Record<string, AlliedItem[]>;
   tender_clause?: string;
+  tier?: 'enriched' | 'catalogue';
+  is_enriched?: boolean;
+  canonical_key?: string;
+  department?: string;
+  department_name?: string;
+  aspect?: string;
+  published_on?: string;
+  valid_upto?: string;
+  title_hindi?: string;
+  scope?: string;
   signals?: {
     dense_rank?: number | null;
     sparse_rank?: number | null;
@@ -63,7 +73,7 @@ export interface RecommendResponse {
 
 export interface AuditIssue {
   is_number: string;
-  severity: 'high' | 'medium' | 'info';
+  severity: 'high' | 'medium' | 'low' | 'info' | string;
   issue: string;
   action: string;
 }
@@ -75,10 +85,47 @@ export interface SuggestedAddition {
   referenced_by: string;
 }
 
+export interface MatchedStandard {
+  is_number: string;
+  canonical_key?: string;
+  title?: string;
+  tier?: 'enriched' | 'catalogue';
+  status?: string;
+  department?: string;
+}
+
 export interface ValidateResponse {
   cited: string[];
+  standards_checked?: number;
+  valid_standards?: number;
   issues: AuditIssue[];
   suggested_additions: SuggestedAddition[];
+  matched_standards?: MatchedStandard[];
+}
+
+export interface StandardDetail {
+  is_number: string;
+  canonical_key?: string;
+  title: string;
+  title_hindi?: string | null;
+  year?: number | null;
+  status: 'current' | 'superseded' | 'withdrawn' | 'under_revision' | string;
+  division?: string;
+  department?: string;
+  department_name?: string | null;
+  scope?: string;
+  normative_references?: string[];
+  amendments?: Amendment[];
+  certification?: Certification | null;
+  superseded_by?: string | null;
+  published_on?: string | null;
+  valid_upto?: string | null;
+  aspect?: string | null;
+  degree_of_equivalence?: string | null;
+  tier?: 'enriched' | 'catalogue';
+  is_enriched?: boolean;
+  tender_clause?: string;
+  allied_by_role?: Record<string, AlliedItem[]>;
 }
 
 export interface StandardCatalogItem {
@@ -89,10 +136,12 @@ export interface StandardCatalogItem {
   status: string;
   mandatory_qco: boolean;
   certification?: Certification;
+  tier?: 'enriched' | 'catalogue';
 }
 
 export interface StandardsCatalogResponse {
   total: number;
+
   standards: StandardCatalogItem[];
 }
 

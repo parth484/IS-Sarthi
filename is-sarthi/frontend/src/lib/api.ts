@@ -2,6 +2,7 @@ import {
   RecommendResponse,
   ValidateResponse,
   StandardsCatalogResponse,
+  StandardDetail,
   GraphResponse,
   TranscribeResponse,
   SynthesizeResponse,
@@ -18,6 +19,17 @@ export async function fetchHealth(): Promise<{ status: string; standards_indexed
   if (!res.ok) throw new Error('Failed to fetch API health');
   return res.json();
 }
+
+export async function fetchStandardDetail(is_number: string): Promise<StandardDetail> {
+  const encoded = encodeURIComponent(is_number);
+  const res = await fetch(`${API_BASE}/standards/${encoded}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `Standard '${is_number}' not found` }));
+    throw new Error(err.detail || `Standard '${is_number}' not found`);
+  }
+  return res.json();
+}
+
 
 export async function recommendStandards(
   query: string,
