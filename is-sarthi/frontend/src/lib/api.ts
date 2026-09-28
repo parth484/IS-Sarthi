@@ -22,7 +22,7 @@ export async function fetchHealth(): Promise<{ status: string; standards_indexed
 
 export function getStandardDetailUrl(is_number: string): string {
   if (!is_number) return '/standards';
-  return `/standards/${encodeURIComponent(is_number.trim())}`;
+  return `/standards?is_number=${encodeURIComponent(is_number.trim())}`;
 }
 
 export async function fetchStandardDetail(is_number: string): Promise<StandardDetail> {

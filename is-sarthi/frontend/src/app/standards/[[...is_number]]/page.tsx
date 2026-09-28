@@ -38,17 +38,18 @@ function StandardDetailContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 
-  // Robust extraction supporting multi-segment catch-all paths and query fallbacks
-  const paramVal = params?.is_number;
-  let raw = '';
-  if (Array.isArray(paramVal)) {
-    raw = paramVal.join('/');
-  } else if (typeof paramVal === 'string') {
-    raw = paramVal;
-  }
+  // Robust extraction: prioritize query parameter (?is_number=...) then fallback to path param
+  let raw = searchParams
+    ? (searchParams.get('is_number') || searchParams.get('id') || searchParams.get('standard') || '')
+    : '';
 
-  if (!raw && searchParams) {
-    raw = searchParams.get('is_number') || searchParams.get('id') || searchParams.get('standard') || '';
+  if (!raw) {
+    const paramVal = params?.is_number;
+    if (Array.isArray(paramVal)) {
+      raw = paramVal.join('/');
+    } else if (typeof paramVal === 'string') {
+      raw = paramVal;
+    }
   }
 
   const isNumber = raw ? safeDecode(raw).trim() : '';
