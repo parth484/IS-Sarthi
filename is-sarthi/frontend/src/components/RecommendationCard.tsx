@@ -23,18 +23,29 @@ import {
 import { Recommendation } from '@/lib/types';
 
 import VoicePlayer from './VoicePlayer';
-import { submitFeedback, getStandardDetailUrl } from '@/lib/api';
+import StandardDetailModal from './StandardDetailModal';
+import { submitFeedback } from '@/lib/api';
 
 interface RecommendationCardProps {
   rec: Recommendation;
   query: string;
+  onOpenDetail?: (rec: Recommendation) => void;
 }
 
-export default function RecommendationCard({ rec, query }: RecommendationCardProps) {
+export default function RecommendationCard({ rec, query, onOpenDetail }: RecommendationCardProps) {
   const [showClause, setShowClause] = useState(false);
   const [showAllied, setShowAllied] = useState(false);
   const [copied, setCopied] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState<'positive' | 'negative' | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const handleOpenDetail = () => {
+    if (onOpenDetail) {
+      onOpenDetail(rec);
+    } else {
+      setIsDetailOpen(true);
+    }
+  };
 
   const status = rec.status.toLowerCase();
   const isSuperseded = status === 'superseded' || status === 'withdrawn';
@@ -140,13 +151,14 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <Link
-              href={getStandardDetailUrl(rec.is_number)}
-              className="text-xl font-bold text-govNavy-900 hover:text-blue-700 tracking-tight transition-colors inline-flex items-center gap-1.5"
+            <button
+              type="button"
+              onClick={handleOpenDetail}
+              className="text-xl font-bold text-govNavy-900 hover:text-blue-700 tracking-tight transition-colors inline-flex items-center gap-1.5 text-left cursor-pointer"
             >
               <span>{rec.is_number}</span>
               <ExternalLink className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
-            </Link>
+            </button>
             <span className="text-xs bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-mono font-medium">
               Edition: {rec.latest_version}
             </span>
@@ -159,12 +171,13 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
             )}
           </div>
           <h4 className="text-base font-semibold text-blue-900 mt-1.5">
-            <Link
-              href={getStandardDetailUrl(rec.is_number)}
-              className="hover:underline"
+            <button
+              type="button"
+              onClick={handleOpenDetail}
+              className="hover:underline text-left cursor-pointer font-semibold text-blue-900"
             >
               {rec.title}
-            </Link>
+            </button>
           </h4>
           {rec.title_hindi && (
             <div className="text-xs text-slate-500 font-medium mt-0.5">
@@ -401,13 +414,14 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
             {showClause ? 'Hide Tender Clause' : '📝 View Formatted Tender Clause'}
           </button>
 
-          <Link
-            href={getStandardDetailUrl(rec.is_number)}
-            className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold px-3 py-1.5 rounded text-xs border border-blue-200 transition-colors"
+          <button
+            type="button"
+            onClick={handleOpenDetail}
+            className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold px-3 py-1.5 rounded text-xs border border-blue-200 transition-colors cursor-pointer"
           >
             <ExternalLink className="w-3.5 h-3.5 text-blue-700" />
             <span>{isEnriched ? 'View Enriched Dossier' : 'View Catalogue Metadata'}</span>
-          </Link>
+          </button>
         </div>
 
 
@@ -471,6 +485,15 @@ export default function RecommendationCard({ rec, query }: RecommendationCardPro
         justification={rec.justification}
         supersededBy={rec.superseded_by}
       />
+
+      {/* In-page Standard Detail Modal / Panel Overlay */}
+      {isDetailOpen && (
+        <StandardDetailModal
+          isOpen={isDetailOpen}
+          onClose={() => setIsDetailOpen(false)}
+          recommendation={rec}
+        />
+      )}
     </div>
   );
 }
